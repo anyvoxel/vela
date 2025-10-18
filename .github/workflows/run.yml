@@ -1,7 +1,7 @@
 name: on-pr-opened
 
 on:
-    pull_request:
+    issues:
         types: [opened]
 
 jobs:
@@ -13,6 +13,6 @@ jobs:
               with:
                   go-version: "1.25"
             - run: |
-                  echo "Pull Request ID: ${{ github.event.pull_request.id }}"
-                  echo "Pull Request URL: ${{ github.event.pull_request.url }}"
+                  echo "Pull Request ID: ${{ github.event.issue.id }}"
+                  echo "Pull Request URL: ${{ github.event.issue.url }}"
                   go version
