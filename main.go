@@ -85,7 +85,7 @@ func main() {
 			"context": bodyMarkdown,
 		}
 		prompt, err := blades.NewPromptTemplate().System(
-			"请总结文档 {{.content}} 的主要内容, 输出应当尽量简短， 控制在 100 字内。", params).User("", params).Build()
+			"请总结文档 {{.context}} 的主要内容, 输出应当尽量简短， 控制在 100 字内。", params).User("", params).Build()
 		if err != nil {
 			return
 		}
