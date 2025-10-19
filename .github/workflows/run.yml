@@ -26,30 +26,25 @@ jobs:
           GITHUB_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           go run main.go
-      - name: Commit changes
-        id: commit_changes
+      - name: Prepare commit changes
+        id: prepare_changes
         run: |
           git config --global user.email "${{ vars.EMAIL }}"
           git config --global user.name "${{ vars.NAME }}"
-          git checkout -b feat-$(date -u '+%Y-%m-%d')
-          git add .
           # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "update: $(date -u '+%Y-%m-%d') blog posts"
-          echo "Changes committed"
-          git checkout main
-          git reset --hard HEAD^
           git remote -v
           echo "branch=feat-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
       - name: Create pull request
         uses: peter-evans/create-pull-request@v5
         env:
-          BRANCH_NAME: ${{ steps.commit_changes.outputs.branch }}
+          BRANCH_NAME: ${{ steps.prepare_changes.outputs.branch }}
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           branch: ${{ env.BRANCH_NAME }}
           title: "feat: ${{ env.BRANCH_NAME }} blog posts"
           body: "Update ${{ env.BRANCH_NAME }} blog posts"
+          commit-message: "update: ${{ env.BRANCH_NAME }} blog posts"
