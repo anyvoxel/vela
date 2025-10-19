@@ -15,16 +15,19 @@ import (
 )
 
 func main() {
-	agent := blades.NewAgent("Template Agent",
+	systemPrompt, err := os.ReadFile("./system_prompts.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	agent := blades.NewAgent("Summary Agent",
 		blades.WithModel(os.Getenv("OPENAI_MODEL")), blades.WithProvider(bladesopenai.NewChatProvider()))
 
 	listCollector := colly.NewCollector()
 	articleCollector := colly.NewCollector()
 
 	listCollector.OnHTML("div.Blog", func(h *colly.HTMLElement) {
-		shouldNextPage := true
-
-		h.ForEachWithBreak("div.blog-posts div.post", func(i int, h *colly.HTMLElement) bool {
+		h.ForEachWithBreak("div.blog-posts div.post", func(_ int, h *colly.HTMLElement) bool {
 			path := h.ChildAttr("h3.post-title a", "href")
 			if path == "" {
 				return false
@@ -42,20 +45,6 @@ func main() {
 
 			return true
 		})
-
-		if !shouldNextPage {
-			return
-		}
-
-		path := h.ChildAttr("div.blog-pager a.blog-pager-older-link", "href")
-		if path == "" {
-			return
-		}
-
-		err := listCollector.Request("GET", path, nil, h.Request.Ctx, nil)
-		if err != nil {
-			return
-		}
 	})
 
 	articleCollector.OnHTML("div.post", func(h *colly.HTMLElement) {
@@ -85,7 +74,7 @@ func main() {
 			"context": bodyMarkdown,
 		}
 		prompt, err := blades.NewPromptTemplate().System(
-			"请总结文档 {{.context}} 的主要内容, 输出应当尽量简短， 控制在 100 字内。", params).User("", params).Build()
+			string(systemPrompt), params).User("Please summarize the following blog post: {{.context}}", params).Build()
 		if err != nil {
 			return
 		}
@@ -97,7 +86,7 @@ func main() {
 		fmt.Printf("title: %s, summary: %s\n", title, result.Text())
 	})
 
-	err := listCollector.Request("GET", "http://muratbuffalo.blogspot.com", nil, colly.NewContext(), nil)
+	err = listCollector.Request("GET", "http://muratbuffalo.blogspot.com", nil, colly.NewContext(), nil)
 	if err != nil {
 		panic(err)
 	}
