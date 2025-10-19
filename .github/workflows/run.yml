@@ -41,6 +41,7 @@ jobs:
           git commit -m "update: $(date -u '+%Y-%m-%d') blog posts"
           echo "Changes committed"
           git checkout main
+          git reset --hard HEAD^
           git remote -v
           echo "branch=feat-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
       - name: Create pull request
