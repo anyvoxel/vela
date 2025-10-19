@@ -31,11 +31,6 @@ jobs:
         run: |
           git config --global user.email "${{ vars.EMAIL }}"
           git config --global user.name "${{ vars.NAME }}"
-          # Check if there are changes to commit
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
           git remote -v
           echo "branch=feat-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
       - name: Create pull request
