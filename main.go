@@ -177,6 +177,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+
+		f.WriteString("\n")
 	}
 	slog.InfoContext(context.Background(), "save results",
 		slog.String("Filename", filename),
