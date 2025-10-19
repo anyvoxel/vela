@@ -27,6 +27,7 @@ jobs:
         run: |
           go run main.go
       - name: Commit changes
+        id: commit_changes
         run: |
           git config --global user.email "${{ vars.EMAIL }}"
           git config --global user.name "${{ vars.NAME }}"
@@ -41,11 +42,14 @@ jobs:
           echo "Changes committed"
           git checkout main
           git remote -v
+          echo "branch=feat-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
       - name: Create pull request
         uses: peter-evans/create-pull-request@v5
+        env:
+          BRANCH_NAME: ${{ steps.commit_changes.outputs.branch }}
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          branch: feat-$(date -u '+%Y-%m-%d')
+          branch: ${{ env.BRANCH_NAME }}
           title: "feat: $(date -u '+%Y-%m-%d') blog posts"
           body: "Update $(date -u '+%Y-%m-%d') blog posts"
           commit-message: "update: $(date -u '+%Y-%m-%d') blog posts"
