@@ -50,6 +50,5 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           branch: ${{ env.BRANCH_NAME }}
-          title: "feat: $(date -u '+%Y-%m-%d') blog posts"
-          body: "Update $(date -u '+%Y-%m-%d') blog posts"
-          commit-message: "update: $(date -u '+%Y-%m-%d') blog posts"
+          title: "feat: ${{ env.BRANCH_NAME }} blog posts"
+          body: "Update ${{ env.BRANCH_NAME }} blog posts"
