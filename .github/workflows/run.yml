@@ -1,0 +1,45 @@
+name: on-pr-opened
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.25"
+      - name: test
+        run: |
+          echo "Pull Request ID: ${{ github.event.issue.id }}"
+          echo "Pull Request URL: ${{ github.event.issue.url }}"
+          go version
+          go mod download
+      - name: summary
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          go run main.go
+      - name: Prepare commit changes
+        id: prepare_changes
+        run: |
+          git config --global user.email "${{ vars.EMAIL }}"
+          git config --global user.name "${{ vars.NAME }}"
+          git remote -v
+          echo "branch=feat-$(date -u '+%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        env:
+          BRANCH_NAME: ${{ steps.prepare_changes.outputs.branch }}
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          branch: ${{ env.BRANCH_NAME }}
+          title: "feat: ${{ env.BRANCH_NAME }} blog posts"
+          body: "Update ${{ env.BRANCH_NAME }} blog posts"
+          commit-message: "update: ${{ env.BRANCH_NAME }} blog posts"

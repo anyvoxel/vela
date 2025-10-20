@@ -1,0 +1,4 @@
+# We should not ingore .git directory, because when build within Dockerfile, we want to retrieve git information 
+# from git command in make command.
+# .git
+output

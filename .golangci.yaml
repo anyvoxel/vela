@@ -1,0 +1,46 @@
+version: "2"
+linters:
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - cyclop
+    - decorder
+    - dupl
+    - err113
+    - errname
+    - errorlint
+    - exhaustive
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gocognit
+    - goconst
+    - gocritic
+    - goheader
+    - gomoddirectives
+    - lll
+    - misspell
+    - revive
+    - unparam
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - errcheck
+        path: _test.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+run:
+  timeout: 5m

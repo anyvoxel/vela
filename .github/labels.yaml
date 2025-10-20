@@ -1,0 +1,13 @@
+area:
+  - 'bug'
+  - 'important'
+  - 'feature'
+
+kind:
+  - 'failing-test'
+  - 'cleanup'
+
+priority:
+  - 'P0'
+  - 'P1'
+  - 'P2'
