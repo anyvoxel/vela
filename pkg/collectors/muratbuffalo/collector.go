@@ -48,7 +48,7 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 			}
 
 			slog.InfoContext(ctx, "collect article", slog.String("Path", path))
-			err := c.postCollector.Request("GET", path, nil, h.Request.Ctx, nil)
+			err := c.postCollector.Request("GET", path, nil, nil, nil)
 			if err != nil {
 				slog.ErrorContext(ctx,
 					"cann't request on article",
@@ -90,7 +90,7 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 		}
 	})
 
-	err := c.postCollector.Request("GET", "https://muratbuffalo.blogspot.com", nil, colly.NewContext(), nil)
+	err := c.listCollector.Request("GET", "https://muratbuffalo.blogspot.com", nil, colly.NewContext(), nil)
 	if err != nil {
 		return err
 	}
