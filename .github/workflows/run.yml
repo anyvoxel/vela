@@ -3,6 +3,8 @@ name: on-pr-opened
 on:
   issues:
     types: [opened]
+  issue_comment:
+    types: [created, deleted, edited]
 
 jobs:
   run:
