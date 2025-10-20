@@ -98,7 +98,7 @@ lint: $(GOLANGCI_LINT)
 	@$(GOLANGCI_LINT) run -v
 
 $(GOLANGCI_LINT):
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(BIN_DIR)/bin v2.4.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(BIN_DIR) v2.4.0
 
 test:
 	# 1. Now we can use -race flag, the 'nosplit stack overflow' error will not happened at >= go1.20

@@ -7,7 +7,7 @@ import (
 	"github.com/anyvoxel/vela/pkg/app"
 )
 
-func main() { //nolint
+func main() {
 	a, err := app.NewApplication(context.Background())
 	if err != nil {
 		panic(err)
