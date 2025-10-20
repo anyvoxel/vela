@@ -33,8 +33,8 @@ func NewSummarizer(_ context.Context) (*Summarizer, error) {
 // Summary summarizes the given content.
 func (a *Summarizer) Summary(ctx context.Context, content string) (string, error) {
 	prompt, err := blades.NewPromptTemplate().System(
-		a.systemPrompt, nil).User("Please summarize the following blog post: {{.context}}", map[string]any{
-		"context": content,
+		a.systemPrompt, nil).User("Please summarize the following blog post: {{.content}}", map[string]any{
+		"content": content,
 	}).Build()
 	if err != nil {
 		return "", err
