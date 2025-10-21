@@ -1,5 +1,5 @@
-// Package muratbuffalo implement collector for muratbuffalo.blogspot.com
-package muratbuffalo
+// Package allthingsdistributed implement collector for https://www.allthingsdistributed.com/
+package allthingsdistributed
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func NewCollector(_ context.Context) (collectors.Collector, error) {
 
 // Name implement collector.Name
 func (c *Collector) Name() string {
-	return "muratbuffalo"
+	return "allthingsdistributed"
 }
 
 // Initialize implement collector.Initialize
@@ -40,9 +40,9 @@ func (c *Collector) Initialize(_ context.Context) error {
 func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error {
 	defer close(ch)
 
-	c.listCollector.OnHTML("div.Blog", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("div.blog-posts div.post", func(_ int, h *colly.HTMLElement) bool {
-			path := h.ChildAttr("h3.post-title a", "href")
+	c.listCollector.OnHTML("ul.posts", func(h *colly.HTMLElement) {
+		h.ForEachWithBreak("li", func(_ int, h *colly.HTMLElement) bool {
+			path := h.ChildAttr("a", "href")
 			if path == "" {
 				return false
 			}
@@ -61,19 +61,19 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 		})
 	})
 
-	c.postCollector.OnHTML("div.post", func(h *colly.HTMLElement) {
-		title := h.ChildText("h3.post-title")
+	c.postCollector.OnHTML("body main section", func(h *colly.HTMLElement) {
+		title := h.ChildText("h2")
 		if title == "" {
 			return
 		}
 
-		publishedAt := h.ChildAttr("time.published", "datetime")
-		t, err := time.Parse("2006-01-02T15:04:05-07:00", publishedAt)
+		publishedAt := h.ChildAttr("p.meta time", "datetime")
+		t, err := time.Parse("2006-01-02", publishedAt)
 		if err != nil {
 			return
 		}
 
-		postBody, err := h.DOM.Find("div.post-body").Html()
+		postBody, err := h.DOM.Find("span").Html()
 		if err != nil {
 			return
 		}
@@ -90,7 +90,7 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 		}
 	})
 
-	err := c.listCollector.Request("GET", "https://muratbuffalo.blogspot.com", nil, colly.NewContext(), nil)
+	err := c.listCollector.Request("GET", "https://www.allthingsdistributed.com/", nil, colly.NewContext(), nil)
 	if err != nil {
 		return err
 	}

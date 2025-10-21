@@ -22,6 +22,10 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-kratos/blades v0.0.0-20251017130540-7817ba9b3198 h1:EaE7viJPlBDfy8j/G+zqu6ELwZq1BbOuQHiRZFVLIZ4=
 github.com/go-kratos/blades v0.0.0-20251017130540-7817ba9b3198/go.mod h1:78h7njIRwumZCxJk33Gj7cs04AAOPvUnyuuRJHA2Kkc=
+github.com/go-kratos/blades v0.0.0-20251020150000-24406482a8cc h1:xAHrKbY7qPFoKFnWLrPAD2xDu7X+88eup4rX64Weg+I=
+github.com/go-kratos/blades v0.0.0-20251020150000-24406482a8cc/go.mod h1:78h7njIRwumZCxJk33Gj7cs04AAOPvUnyuuRJHA2Kkc=
+github.com/go-kratos/blades v0.0.0-20251021030123-315ef6a5acbd h1:M+C/HwNLHQ97LBGqEABPVpsyEZW5uVDTVULlxh3iWGE=
+github.com/go-kratos/blades v0.0.0-20251021030123-315ef6a5acbd/go.mod h1:78h7njIRwumZCxJk33Gj7cs04AAOPvUnyuuRJHA2Kkc=
 github.com/go-kratos/blades/contrib/openai v0.0.0-20251020023037-4f65884af622 h1:Ux0tjOi5xyVVxYvLkltZc4b00GORsjnAnBNVoQMp0Tg=
 github.com/go-kratos/blades/contrib/openai v0.0.0-20251020023037-4f65884af622/go.mod h1:9hhxfTt0PptZ1vRGnJ9PmaNXFUXjnMVZyuseiwuFUG4=
 github.com/go-kratos/generics v0.0.0-20251015114009-68dee470a252 h1:f4ucngVcWpzEpRrRLY4ZGZpciMVfLcfVzwhoiZbjzqc=

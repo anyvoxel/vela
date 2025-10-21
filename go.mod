@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
-	github.com/go-kratos/blades v0.0.0-20251017130540-7817ba9b3198
+	github.com/go-kratos/blades v0.0.0-20251021030123-315ef6a5acbd
 	github.com/go-kratos/blades/contrib/openai v0.0.0-20251020023037-4f65884af622
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/onsi/gomega v1.38.2

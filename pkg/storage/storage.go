@@ -126,13 +126,14 @@ func (s *Storage) readPreviousSummaryFile(_ context.Context, dir string, file st
 	}
 }
 
-func (s *Storage) summaryExists(_ context.Context, result *SummaryResult) bool {
-	domain, ok := s.existPosts[result.Domain]
+// SummaryExists return true if this summary already persist
+func (s *Storage) SummaryExists(_ context.Context, domain string, title string) bool {
+	d, ok := s.existPosts[domain]
 	if !ok {
 		return false
 	}
 
-	return domain[result.Title]
+	return d[title]
 }
 
 // Put will persist all result to jsonl file.
@@ -148,7 +149,7 @@ func (s *Storage) Put(ctx context.Context, results []*SummaryResult) error {
 	defer f.Close() //nolint
 
 	for _, result := range results {
-		if s.summaryExists(ctx, result) {
+		if s.SummaryExists(ctx, result.Domain, result.Title) {
 			continue
 		}
 
