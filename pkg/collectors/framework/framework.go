@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/anyvoxel/vela/pkg/collectors"
+	"github.com/anyvoxel/vela/pkg/collectors/allthingsdistributed"
 	"github.com/anyvoxel/vela/pkg/collectors/muratbuffalo"
 )
 
@@ -21,9 +22,10 @@ type newFunc func(context.Context) (collectors.Collector, error)
 func NewFramework(ctx context.Context) (*Framework, error) {
 	newFuncs := []newFunc{
 		muratbuffalo.NewCollector,
+		allthingsdistributed.NewCollector,
 	}
 	f := &Framework{
-		cs: make([]collectors.Collector, 0),
+		cs: make([]collectors.Collector, 0, len(newFuncs)),
 	}
 	for _, fn := range newFuncs {
 		c, err := fn(ctx)

@@ -64,6 +64,10 @@ func (a *Application) Start(ctx context.Context) error {
 		defer wg.Done()
 
 		for post := range ch {
+			if a.store.SummaryExists(ctx, post.Domain, post.Title) {
+				continue
+			}
+
 			result, err := a.summaryAgent.Summary(ctx, post.Content)
 			if err != nil {
 				slog.ErrorContext(ctx,
