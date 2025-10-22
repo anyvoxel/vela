@@ -5,6 +5,8 @@ on:
     types: [opened]
   issue_comment:
     types: [created, deleted, edited]
+  schedule:
+    - cron: "15 4 * * 0"
 
 jobs:
   run:
@@ -14,10 +16,8 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: "1.25"
-      - name: test
+      - name: Prepare go
         run: |
-          echo "Pull Request ID: ${{ github.event.issue.id }}"
-          echo "Pull Request URL: ${{ github.event.issue.url }}"
           go version
           go mod download
       - name: summary

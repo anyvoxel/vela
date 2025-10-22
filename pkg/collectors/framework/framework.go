@@ -12,6 +12,8 @@ import (
 	"github.com/anyvoxel/vela/pkg/collectors/jackvanlightly"
 	"github.com/anyvoxel/vela/pkg/collectors/micahlerner"
 	"github.com/anyvoxel/vela/pkg/collectors/muratbuffalo"
+	"github.com/anyvoxel/vela/pkg/collectors/mydistributed"
+	"github.com/anyvoxel/vela/pkg/collectors/researchrsc"
 	"github.com/anyvoxel/vela/pkg/collectors/thegreenplace"
 )
 
@@ -31,6 +33,8 @@ func NewFramework(ctx context.Context) (*Framework, error) {
 		thegreenplace.NewCollector,
 		charap.NewCollector,
 		jackvanlightly.NewCollector,
+		researchrsc.NewCollector,
+		mydistributed.NewCollector,
 	}
 	f := &Framework{
 		cs: make([]collectors.Collector, 0, len(newFuncs)),
