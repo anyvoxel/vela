@@ -10,6 +10,7 @@ import (
 	"github.com/anyvoxel/vela/pkg/collectors/allthingsdistributed"
 	"github.com/anyvoxel/vela/pkg/collectors/micahlerner"
 	"github.com/anyvoxel/vela/pkg/collectors/muratbuffalo"
+	"github.com/anyvoxel/vela/pkg/collectors/thegreenplace"
 )
 
 // Framework will orchestration all collectors.
@@ -25,6 +26,7 @@ func NewFramework(ctx context.Context) (*Framework, error) {
 		muratbuffalo.NewCollector,
 		allthingsdistributed.NewCollector,
 		micahlerner.NewCollector,
+		thegreenplace.NewCollector,
 	}
 	f := &Framework{
 		cs: make([]collectors.Collector, 0, len(newFuncs)),
