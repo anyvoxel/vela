@@ -9,6 +9,7 @@ import (
 	"github.com/anyvoxel/vela/pkg/collectors"
 	"github.com/anyvoxel/vela/pkg/collectors/allthingsdistributed"
 	"github.com/anyvoxel/vela/pkg/collectors/amazonscience"
+	"github.com/anyvoxel/vela/pkg/collectors/bravenewgeek"
 	"github.com/anyvoxel/vela/pkg/collectors/brooker"
 	"github.com/anyvoxel/vela/pkg/collectors/charap"
 	"github.com/anyvoxel/vela/pkg/collectors/cloudflareblog"
@@ -49,6 +50,7 @@ func NewFramework(ctx context.Context) (*Framework, error) {
 		cloudflareblog.NewCollector,
 		googleblog.NewCollector,
 		brooker.NewCollector,
+		bravenewgeek.NewCollector,
 	}
 	f := &Framework{
 		cs: make([]collectors.Collector, 0, len(newFuncs)),
