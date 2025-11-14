@@ -9,9 +9,23 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"time"
+
+	"github.com/anyvoxel/airmid/anvil"
+	airapp "github.com/anyvoxel/airmid/app"
+	"github.com/anyvoxel/airmid/ioc"
 )
+
+func init() {
+	anvil.Must(airapp.RegisterBeanDefinition(
+		"vela.storage.storage",
+		ioc.MustNewBeanDefinition(
+			reflect.TypeOf((*Storage)(nil)),
+		),
+	))
+}
 
 // SummaryResult is the result of a summary.
 type SummaryResult struct {
@@ -26,34 +40,37 @@ type SummaryResult struct {
 type Storage struct {
 	existPosts map[string]map[string]bool
 	dataPath   string
+	dir        string `airmid:"value:${vela.storage.dir:=./}"`
 }
 
-// NewStorage creates a file system implementation.
-func NewStorage(ctx context.Context, dir string) (*Storage, error) {
-	dataPath := path.Join(dir, "data")
+var (
+	_ ioc.InitializingBean = (*Storage)(nil)
+)
+
+// AfterPropertiesSet implement InitializingBean
+func (s *Storage) AfterPropertiesSet() error {
+	dataPath := path.Join(s.dir, "data")
 	_, err := os.Stat(dataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return nil, err
+			return err
 		}
 
 		err = os.MkdirAll(dataPath, 0755)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	s := &Storage{
-		existPosts: map[string]map[string]bool{},
-		dataPath:   dataPath,
-	}
+	s.existPosts = map[string]map[string]bool{}
+	s.dataPath = dataPath
 
-	err = s.readPreviousSummary(ctx)
+	err = s.readPreviousSummary(context.TODO())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return s, nil
+	return nil
 }
 
 func (s *Storage) readPreviousSummary(ctx context.Context) error {

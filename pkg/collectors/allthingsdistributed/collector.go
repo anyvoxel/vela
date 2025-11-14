@@ -4,13 +4,26 @@ package allthingsdistributed
 import (
 	"context"
 	"log/slog"
+	"reflect"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
+	"github.com/anyvoxel/airmid/anvil"
+	airapp "github.com/anyvoxel/airmid/app"
+	"github.com/anyvoxel/airmid/ioc"
 	"github.com/gocolly/colly/v2"
 
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
+
+func init() {
+	anvil.Must(airapp.RegisterBeanDefinition(
+		"vela.collectors.allthingsdistributed",
+		ioc.MustNewBeanDefinition(
+			reflect.TypeOf((*Collector)(nil)),
+		),
+	))
+}
 
 // Collector implemetation.
 type Collector struct {
@@ -18,12 +31,16 @@ type Collector struct {
 	postCollector *colly.Collector
 }
 
-// NewCollector creates an new implementation.
-func NewCollector(_ context.Context) (collectors.Collector, error) {
-	return &Collector{
-		listCollector: colly.NewCollector(),
-		postCollector: colly.NewCollector(),
-	}, nil
+var (
+	_ ioc.InitializingBean = (*Collector)(nil)
+	_ collectors.Collector = (*Collector)(nil)
+)
+
+// AfterPropertiesSet implement InitializingBean
+func (c *Collector) AfterPropertiesSet() error {
+	c.listCollector = colly.NewCollector()
+	c.postCollector = colly.NewCollector()
+	return nil
 }
 
 // Name implement collector.Name

@@ -5,13 +5,26 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
+	"github.com/anyvoxel/airmid/anvil"
+	airapp "github.com/anyvoxel/airmid/app"
+	"github.com/anyvoxel/airmid/ioc"
 	"github.com/gocolly/colly/v2"
 
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
+
+func init() {
+	anvil.Must(airapp.RegisterBeanDefinition(
+		"vela.collectors.uberblog",
+		ioc.MustNewBeanDefinition(
+			reflect.TypeOf((*Collector)(nil)),
+		),
+	))
+}
 
 // Collector implemetation.
 type Collector struct {
@@ -20,18 +33,22 @@ type Collector struct {
 	header        http.Header
 }
 
-// NewCollector creates an new implementation.
-func NewCollector(_ context.Context) (collectors.Collector, error) {
+var (
+	_ ioc.InitializingBean = (*Collector)(nil)
+	_ collectors.Collector = (*Collector)(nil)
+)
+
+// AfterPropertiesSet implement InitializingBean
+func (c *Collector) AfterPropertiesSet() error {
 	header := http.Header{}
 	header.Add("Content-Type", "text/html; charset=utf-8")
 	header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7") //nolint
 	header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")               //nolint
 
-	return &Collector{
-		listCollector: colly.NewCollector(),
-		postCollector: colly.NewCollector(),
-		header:        header,
-	}, nil
+	c.listCollector = colly.NewCollector()
+	c.postCollector = colly.NewCollector()
+	c.header = header
+	return nil
 }
 
 // Name implement collector.Name
