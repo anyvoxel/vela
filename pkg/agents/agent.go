@@ -5,10 +5,24 @@ import (
 	"context"
 	_ "embed"
 	"os"
+	"reflect"
+
+	"github.com/anyvoxel/airmid/anvil"
+	airapp "github.com/anyvoxel/airmid/app"
+	"github.com/anyvoxel/airmid/ioc"
 
 	"github.com/go-kratos/blades"
 	bladesopenai "github.com/go-kratos/blades/contrib/openai"
 )
+
+func init() {
+	anvil.Must(airapp.RegisterBeanDefinition(
+		"vela.agents.summarizer",
+		ioc.MustNewBeanDefinition(
+			reflect.TypeOf((*Summarizer)(nil)),
+		),
+	))
+}
 
 //go:embed system_prompts.md
 var systemPrompts string
@@ -19,15 +33,17 @@ type Summarizer struct {
 	systemPrompt string
 }
 
-// NewSummarizer creates a new summarizer agent.
-func NewSummarizer(_ context.Context) (*Summarizer, error) {
+var (
+	_ ioc.InitializingBean = (*Summarizer)(nil)
+)
+
+// AfterPropertiesSet implement InitializingBean
+func (a *Summarizer) AfterPropertiesSet() error {
 	agent := blades.NewAgent("Summary Agent",
 		blades.WithModel(os.Getenv("OPENAI_MODEL")), blades.WithProvider(bladesopenai.NewChatProvider()))
-
-	return &Summarizer{
-		agent:        agent,
-		systemPrompt: systemPrompts,
-	}, nil
+	a.agent = agent
+	a.systemPrompt = systemPrompts
+	return nil
 }
 
 // Summary summarizes the given content.

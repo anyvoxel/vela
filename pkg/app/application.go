@@ -4,7 +4,12 @@ package app
 import (
 	"context"
 	"log/slog"
+	"reflect"
 	"sync"
+
+	"github.com/anyvoxel/airmid/anvil"
+	airapp "github.com/anyvoxel/airmid/app"
+	"github.com/anyvoxel/airmid/ioc"
 
 	"github.com/anyvoxel/vela/pkg/agents"
 	"github.com/anyvoxel/vela/pkg/collectors"
@@ -12,35 +17,47 @@ import (
 	"github.com/anyvoxel/vela/pkg/storage"
 )
 
-// Application is the represent of vela.
-type Application struct {
-	f            *framework.Framework
-	summaryAgent *agents.Summarizer
-	store        *storage.Storage
+func init() {
+	anvil.Must(airapp.RegisterBeanDefinition(
+		"vela.application",
+		ioc.MustNewBeanDefinition(
+			reflect.TypeOf((*Application)(nil)),
+		),
+	))
 }
 
-// NewApplication will creates an app implementation.
-func NewApplication(ctx context.Context) (*Application, error) {
-	summaryAgent, err := agents.NewSummarizer(ctx)
-	if err != nil {
-		return nil, err
-	}
+// Application is the represent of vela.
+type Application struct {
+	f            *framework.Framework `airmid:"autowire:?"`
+	summaryAgent *agents.Summarizer   `airmid:"autowire:?"`
+	store        *storage.Storage     `airmid:"autowire:?"`
 
-	store, err := storage.NewStorage(ctx, "./")
-	if err != nil {
-		return nil, err
-	}
+	airmidApplication airapp.Application
+}
 
-	f, err := framework.NewFramework(ctx)
-	if err != nil {
-		return nil, err
-	}
+var (
+	_ airapp.Runner           = (*Application)(nil)
+	_ airapp.ApplicationAware = (*Application)(nil)
+)
 
-	return &Application{
-		f:            f,
-		summaryAgent: summaryAgent,
-		store:        store,
-	}, nil
+// Run implement Runner.Run
+func (a *Application) Run(ctx context.Context) {
+	go func() {
+		err := a.Start(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "start application failed", slog.Any("Error", err))
+		}
+
+		a.airmidApplication.Shutdown()
+	}()
+}
+
+// Stop implement Runner.Stop
+func (a *Application) Stop(_ context.Context) {}
+
+// SetApplication implement ApplicationAware
+func (a *Application) SetApplication(application airapp.Application) {
+	a.airmidApplication = application
 }
 
 // Start will start the application

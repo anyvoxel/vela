@@ -4,71 +4,37 @@ package framework
 import (
 	"context"
 	"log/slog"
+	"reflect"
 	"sync"
 
+	"github.com/anyvoxel/airmid/anvil"
+	airapp "github.com/anyvoxel/airmid/app"
+	"github.com/anyvoxel/airmid/ioc"
+
 	"github.com/anyvoxel/vela/pkg/collectors"
-	"github.com/anyvoxel/vela/pkg/collectors/allthingsdistributed"
-	"github.com/anyvoxel/vela/pkg/collectors/amazonscience"
-	"github.com/anyvoxel/vela/pkg/collectors/bravenewgeek"
-	"github.com/anyvoxel/vela/pkg/collectors/brooker"
-	"github.com/anyvoxel/vela/pkg/collectors/charap"
-	"github.com/anyvoxel/vela/pkg/collectors/cloudflareblog"
-	"github.com/anyvoxel/vela/pkg/collectors/engineeringfb"
-	"github.com/anyvoxel/vela/pkg/collectors/googleblog"
-	"github.com/anyvoxel/vela/pkg/collectors/jackvanlightly"
-	"github.com/anyvoxel/vela/pkg/collectors/micahlerner"
-	"github.com/anyvoxel/vela/pkg/collectors/muratbuffalo"
-	"github.com/anyvoxel/vela/pkg/collectors/mydistributed"
-	"github.com/anyvoxel/vela/pkg/collectors/researchrsc"
-	"github.com/anyvoxel/vela/pkg/collectors/shopifyblog"
-	"github.com/anyvoxel/vela/pkg/collectors/thegreenplace"
-	"github.com/anyvoxel/vela/pkg/collectors/uberblog"
 )
+
+func init() {
+	anvil.Must(airapp.RegisterBeanDefinition(
+		"vela.collectors.framework",
+		ioc.MustNewBeanDefinition(
+			reflect.TypeOf((*Framework)(nil)),
+		),
+	))
+}
 
 // Framework will orchestration all collectors.
 type Framework struct {
-	cs []collectors.Collector
-}
-
-type newFunc func(context.Context) (collectors.Collector, error)
-
-// NewFramework creates an framework implementation.
-func NewFramework(ctx context.Context) (*Framework, error) {
-	newFuncs := []newFunc{
-		muratbuffalo.NewCollector,
-		allthingsdistributed.NewCollector,
-		micahlerner.NewCollector,
-		thegreenplace.NewCollector,
-		charap.NewCollector,
-		jackvanlightly.NewCollector,
-		researchrsc.NewCollector,
-		mydistributed.NewCollector,
-		amazonscience.NewCollector,
-		engineeringfb.NewCollector,
-		uberblog.NewCollector,
-		shopifyblog.NewCollector,
-		cloudflareblog.NewCollector,
-		googleblog.NewCollector,
-		brooker.NewCollector,
-		bravenewgeek.NewCollector,
-	}
-	f := &Framework{
-		cs: make([]collectors.Collector, 0, len(newFuncs)),
-	}
-	for _, fn := range newFuncs {
-		c, err := fn(ctx)
-		if err != nil {
-			return nil, err
-		}
-		f.cs = append(f.cs, c)
-	}
-
-	return f, nil
+	cs []collectors.Collector `airmid:"autowire:?"`
 }
 
 // Start will collector post from all domain.
 func (f *Framework) Start(ctx context.Context, ch chan<- collectors.Post) error {
 	defer close(ch)
+
+	slog.InfoContext(ctx, "start to process collector",
+		slog.Int("CollectorCount", len(f.cs)),
+	)
 
 	for _, c := range f.cs {
 		err := c.Initialize(ctx)
