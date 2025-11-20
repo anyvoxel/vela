@@ -37,7 +37,7 @@ var (
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (c *Collector) AfterPropertiesSet() error {
+func (c *Collector) AfterPropertiesSet(context.Context) error {
 	c.listCollector = colly.NewCollector()
 	c.postCollector = colly.NewCollector()
 	return nil

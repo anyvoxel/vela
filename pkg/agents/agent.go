@@ -38,7 +38,7 @@ var (
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (a *Summarizer) AfterPropertiesSet() error {
+func (a *Summarizer) AfterPropertiesSet(context.Context) error {
 	agent := blades.NewAgent("Summary Agent",
 		blades.WithModel(os.Getenv("OPENAI_MODEL")), blades.WithProvider(bladesopenai.NewChatProvider()))
 	a.agent = agent

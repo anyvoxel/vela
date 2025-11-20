@@ -48,7 +48,7 @@ var (
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (s *Storage) AfterPropertiesSet() error {
+func (s *Storage) AfterPropertiesSet(ctx context.Context) error {
 	dataPath := path.Join(s.dir, "data")
 	_, err := os.Stat(dataPath)
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *Storage) AfterPropertiesSet() error {
 	s.existPosts = map[string]map[string]bool{}
 	s.dataPath = dataPath
 
-	err = s.readPreviousSummary(context.TODO())
+	err = s.readPreviousSummary(ctx)
 	if err != nil {
 		return err
 	}

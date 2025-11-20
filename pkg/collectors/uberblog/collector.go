@@ -39,7 +39,7 @@ var (
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (c *Collector) AfterPropertiesSet() error {
+func (c *Collector) AfterPropertiesSet(context.Context) error {
 	header := http.Header{}
 	header.Add("Content-Type", "text/html; charset=utf-8")
 	header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7") //nolint
