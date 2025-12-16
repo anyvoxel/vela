@@ -10,6 +10,7 @@ import (
 	"github.com/anyvoxel/airmid/anvil"
 	airapp "github.com/anyvoxel/airmid/app"
 	"github.com/anyvoxel/airmid/ioc"
+	slogctx "github.com/veqryn/slog-context"
 
 	"github.com/anyvoxel/vela/pkg/agents"
 	"github.com/anyvoxel/vela/pkg/collectors"
@@ -45,7 +46,7 @@ func (a *Application) Run(ctx context.Context) {
 	go func() {
 		err := a.Start(ctx)
 		if err != nil {
-			slog.ErrorContext(ctx, "start application failed", slog.Any("Error", err))
+			slogctx.FromCtx(ctx).ErrorContext(ctx, "start application failed", slog.Any("Error", err))
 		}
 
 		a.airmidApplication.Shutdown()
@@ -73,7 +74,7 @@ func (a *Application) Start(ctx context.Context) error {
 
 		err := a.f.Start(ctx, ch)
 		if err != nil {
-			slog.ErrorContext(ctx, "start framework failed")
+			slogctx.FromCtx(ctx).ErrorContext(ctx, "start framework failed")
 		}
 	}()
 
@@ -87,7 +88,7 @@ func (a *Application) Start(ctx context.Context) error {
 
 			result, err := a.summaryAgent.Summary(ctx, post.Content)
 			if err != nil {
-				slog.ErrorContext(ctx,
+				slogctx.FromCtx(ctx).ErrorContext(ctx,
 					"summary post failed",
 					slog.String("Path", post.Path),
 					slog.String("Domain", post.Domain),
@@ -113,6 +114,6 @@ func (a *Application) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	slog.InfoContext(ctx, "process done")
+	slogctx.FromCtx(ctx).InfoContext(ctx, "process done")
 	return nil
 }

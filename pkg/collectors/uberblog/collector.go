@@ -13,6 +13,7 @@ import (
 	airapp "github.com/anyvoxel/airmid/app"
 	"github.com/anyvoxel/airmid/ioc"
 	"github.com/gocolly/colly/v2"
+	slogctx "github.com/veqryn/slog-context"
 
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
@@ -72,10 +73,10 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 				return false
 			}
 
-			slog.InfoContext(ctx, "collect article", slog.String("Path", path))
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article", slog.String("Path", path))
 			err := c.postCollector.Request("GET", "https://www.uber.com"+path, nil, nil, c.header)
 			if err != nil {
-				slog.ErrorContext(ctx,
+				slogctx.FromCtx(ctx).ErrorContext(ctx,
 					"cann't request on article",
 					slog.Any("Error", err),
 					slog.String("NextPath", path))
