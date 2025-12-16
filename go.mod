@@ -11,6 +11,7 @@ require (
 	github.com/go-kratos/blades/contrib/openai v0.0.0-20251020023037-4f65884af622
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/onsi/gomega v1.38.2
+	github.com/veqryn/slog-context v0.8.0
 )
 
 require (
@@ -40,7 +41,6 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/veqryn/slog-context v0.8.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect

@@ -16,6 +16,7 @@ import (
 	"github.com/anyvoxel/airmid/anvil"
 	airapp "github.com/anyvoxel/airmid/app"
 	"github.com/anyvoxel/airmid/ioc"
+	slogctx "github.com/veqryn/slog-context"
 )
 
 func init() {
@@ -175,7 +176,7 @@ func (s *Storage) Put(ctx context.Context, results []*SummaryResult) error {
 			return err
 		}
 	}
-	slog.InfoContext(ctx, "save results",
+	slogctx.FromCtx(ctx).InfoContext(ctx, "save results",
 		slog.String("Filename", f.Name()),
 		slog.Int("Rows", len(results)))
 	return nil
