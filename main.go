@@ -27,6 +27,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/collectors/mydistributed"
 	_ "github.com/anyvoxel/vela/pkg/collectors/researchrsc"
 	_ "github.com/anyvoxel/vela/pkg/collectors/shopifyblog"
+	_ "github.com/anyvoxel/vela/pkg/collectors/siddharthbharath"
 	_ "github.com/anyvoxel/vela/pkg/collectors/thegreenplace"
 	_ "github.com/anyvoxel/vela/pkg/collectors/uberblog"
 )

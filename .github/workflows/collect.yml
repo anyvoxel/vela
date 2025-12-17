@@ -1,4 +1,4 @@
-name: on-pr-opened
+name: collect
 
 on:
   issues:
