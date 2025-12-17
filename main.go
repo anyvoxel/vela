@@ -21,6 +21,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/collectors/googlepubs"
 	_ "github.com/anyvoxel/vela/pkg/collectors/jackvanlightly"
 	_ "github.com/anyvoxel/vela/pkg/collectors/kaiwaehner"
+	_ "github.com/anyvoxel/vela/pkg/collectors/lilianweng"
 	_ "github.com/anyvoxel/vela/pkg/collectors/micahlerner"
 	_ "github.com/anyvoxel/vela/pkg/collectors/muratbuffalo"
 	_ "github.com/anyvoxel/vela/pkg/collectors/mydistributed"
