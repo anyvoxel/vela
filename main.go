@@ -9,6 +9,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/app"
 	_ "github.com/anyvoxel/vela/pkg/collectors/allthingsdistributed"
 	_ "github.com/anyvoxel/vela/pkg/collectors/amazonscience"
+	_ "github.com/anyvoxel/vela/pkg/collectors/arpitbhayani"
 	_ "github.com/anyvoxel/vela/pkg/collectors/bravenewgeek"
 	_ "github.com/anyvoxel/vela/pkg/collectors/brendangregg"
 	_ "github.com/anyvoxel/vela/pkg/collectors/brooker"
