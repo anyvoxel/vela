@@ -7,8 +7,8 @@ require (
 	github.com/anyvoxel/airmid/anvil v0.1.2
 	github.com/anyvoxel/airmid/app v0.1.2
 	github.com/anyvoxel/airmid/ioc v0.1.2
-	github.com/go-kratos/blades v0.0.0-20251021030123-315ef6a5acbd
-	github.com/go-kratos/blades/contrib/openai v0.0.0-20251020023037-4f65884af622
+	github.com/go-kratos/blades v0.3.1
+	github.com/go-kratos/blades/contrib/openai v0.3.0
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/onsi/gomega v1.38.2
 	github.com/veqryn/slog-context v0.8.0
@@ -21,7 +21,7 @@ require (
 	github.com/antchfx/xmlquery v1.4.4 // indirect
 	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/bits-and-blooms/bitset v1.22.0 // indirect
-	github.com/go-kratos/generics v0.0.0-20251015114009-68dee470a252 // indirect
+	github.com/go-kratos/kit v0.0.0-20251121083925-65298ad2aa44 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
@@ -32,7 +32,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/nlnwa/whatwg-url v0.6.1 // indirect
-	github.com/openai/openai-go/v2 v2.7.0 // indirect
+	github.com/openai/openai-go/v3 v3.8.1 // indirect
 	github.com/panjf2000/ants/v2 v2.11.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
