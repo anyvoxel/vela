@@ -4,6 +4,7 @@ package agents
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"os"
 	"reflect"
 
@@ -12,7 +13,7 @@ import (
 	"github.com/anyvoxel/airmid/ioc"
 
 	"github.com/go-kratos/blades"
-	bladesopenai "github.com/go-kratos/blades/contrib/openai"
+	"github.com/go-kratos/blades/contrib/openai"
 )
 
 func init() {
@@ -29,7 +30,7 @@ var systemPrompts string
 
 // Summarizer is a agent that can summarize a blog post.
 type Summarizer struct {
-	agent        *blades.Agent
+	agent        blades.Agent
 	systemPrompt string
 }
 
@@ -39,8 +40,16 @@ var (
 
 // AfterPropertiesSet implement InitializingBean
 func (a *Summarizer) AfterPropertiesSet(context.Context) error {
-	agent := blades.NewAgent("Summary Agent",
-		blades.WithModel(os.Getenv("OPENAI_MODEL")), blades.WithProvider(bladesopenai.NewChatProvider()))
+	model := openai.NewModel(os.Getenv("OPENAI_MODEL"), openai.Config{
+		BaseURL: os.Getenv("OPENAI_BASE_URL"),
+		APIKey:  os.Getenv("OPENAI_API_KEY"),
+	})
+	agent, err := blades.NewAgent("Summary Agent",
+		blades.WithModel(model), blades.WithInstruction(systemPrompts))
+	if err != nil {
+		return err
+	}
+
 	a.agent = agent
 	a.systemPrompt = systemPrompts
 	return nil
@@ -48,15 +57,9 @@ func (a *Summarizer) AfterPropertiesSet(context.Context) error {
 
 // Summary summarizes the given content.
 func (a *Summarizer) Summary(ctx context.Context, content string) (string, error) {
-	prompt, err := blades.NewPromptTemplate().System(
-		a.systemPrompt, nil).User("Please summarize the following blog post: {{.content}}", map[string]any{
-		"content": content,
-	}).Build()
-	if err != nil {
-		return "", err
-	}
-
-	result, err := a.agent.Run(ctx, prompt)
+	prompt := blades.UserMessage(fmt.Sprintf("Please summarize the following blog post: %s", content))
+	runner := blades.NewRunner(a.agent)
+	result, err := runner.Run(ctx, prompt)
 	if err != nil {
 		return "", err
 	}
