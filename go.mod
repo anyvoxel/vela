@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.3.0
 	github.com/anyvoxel/airmid/anvil v0.1.2
 	github.com/anyvoxel/airmid/app v0.1.2
 	github.com/anyvoxel/airmid/ioc v0.1.2
@@ -61,6 +62,7 @@ require (
 	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/time v0.4.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

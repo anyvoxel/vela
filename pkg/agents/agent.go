@@ -2,13 +2,17 @@
 package agents
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
+	"log/slog"
 	"os"
 	"reflect"
 	"time"
 
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
 	"github.com/anyvoxel/airmid/anvil"
 	"github.com/anyvoxel/airmid/anvil/xerrors"
 	airapp "github.com/anyvoxel/airmid/app"
@@ -16,6 +20,7 @@ import (
 	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
+	slogctx "github.com/veqryn/slog-context"
 
 	"github.com/go-kratos/blades"
 	"github.com/go-kratos/blades/contrib/openai"
@@ -38,6 +43,10 @@ type Summarizer struct {
 	agent         blades.Agent
 	summarizeType string `airmid:"value:${vela.summarize.type:=image}"`
 	systemPrompt  string
+
+	ossRegion string `airmid:"value:${vela.summarize.oss.region:=cn-beijing}"`
+	ossBucket string `airmid:"value:${vela.summarize.oss.bucket:=anyvoxel-vela}"`
+	ossClient *oss.Client
 
 	// Summary summarizes the given content.
 	Summary func(ctx context.Context, post apitypes.Post) (string, error)
@@ -70,9 +79,75 @@ func (a *Summarizer) AfterPropertiesSet(context.Context) error {
 		return xerrors.Errorf("Unknown summary type: %s", a.summarizeType)
 	}
 
+	cfg := oss.LoadDefaultConfig().
+		WithCredentialsProvider(credentials.NewEnvironmentVariableCredentialsProvider()).
+		WithRegion(a.ossBucket)
+	a.ossClient = oss.NewClient(cfg)
+
 	a.agent = agent
 	a.systemPrompt = systemPrompts
 	return nil
+}
+
+func (a *Summarizer) putFileToOSS(ctx context.Context, filename string, data []byte) (string, func(), error) {
+	// Result looks like:
+	// {
+	// 	"ContentMD5": "CY9rzUYh03PK3k6DJie09g==",
+	// 	"ETag": "\"098F6BCD4621D373CADE4E832627B4F6\"",
+	// 	"HashCRC64": "18020588380933092773",
+	// 	"VersionId": null,
+	// 	"CallbackResult": null,
+	// 	"Status": "200 OK",
+	// 	"StatusCode": 200,
+	// 	"Headers": {
+	// 		"Connection": ["keep-alive"],
+	// 		"Content-Length": ["0"],
+	// 		"Content-Md5": ["CY9rzUYh03PK3k6DJie09g=="],
+	// 		"Date": ["Thu, 25 Dec 2025 07:11:47 GMT"],
+	// 		"Etag": ["\"098F6BCD4621D373CADE4E832627B4F6\""],
+	// 		"Server": ["AliyunOSS"],
+	// 		"X-Oss-Hash-Crc64ecma": ["18020588380933092773"],
+	// 		"X-Oss-Request-Id": ["694CE3B3C08C163936CEF268"],
+	// 		"X-Oss-Server-Time": ["64"]
+	// 	},
+	// 	"OpMetadata": {}
+	// }
+	result, err := a.ossClient.PutObject(ctx,
+		&oss.PutObjectRequest{
+			Bucket: oss.Ptr(a.ossBucket),
+			Key:    oss.Ptr(filename),
+			Body:   bytes.NewReader(data),
+		})
+	if err != nil {
+		return "", nil, err
+	}
+
+	slogctx.FromCtx(ctx).InfoContext(ctx,
+		"put file to oss success",
+		slog.String("Filename", filename),
+		slog.Any("ContentMD5", result.ContentMD5),
+		slog.Any("Version", result.VersionId),
+	)
+
+	return fmt.Sprintf("https://%s.oss-%s.aliyuncs.com/%s", a.ossBucket, a.ossRegion, filename), func() {
+		result, err := a.ossClient.DeleteObject(ctx, &oss.DeleteObjectRequest{
+			Bucket: oss.Ptr(a.ossBucket),
+			Key:    oss.Ptr(filename),
+		})
+		if err != nil {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"delete file from oss failed",
+				slog.String("Filename", filename),
+			)
+			return
+		}
+
+		slogctx.FromCtx(ctx).InfoContext(ctx,
+			"delete file from oss success",
+			slog.String("Filename", filename),
+			slog.Any("Version", result.VersionId),
+		)
+	}, nil
 }
 
 func (a *Summarizer) summarizeByText(ctx context.Context, post apitypes.Post) (string, error) {
@@ -119,9 +194,14 @@ func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (st
 		return "", err
 	}
 
-	// TODO: upload buf to aliyun oss
+	path, clean, err := a.putFileToOSS(ctx, post.Path, buf)
+	if err != nil {
+		return "", err
+	}
+	defer clean()
+
 	prompt := blades.UserMessage(blades.TextPart{
-		Text: fmt.Sprintf("Please summarize the following blog post in the pdf {%s}", post.Path),
+		Text: fmt.Sprintf("Please summarize the following blog post in the pdf {%s}", path),
 	})
 
 	runner := blades.NewRunner(a.agent)
@@ -150,16 +230,20 @@ func (a *Summarizer) summarizeByImage(ctx context.Context, post apitypes.Post) (
 			return err
 		}),
 	)
-	_ = buf
 
 	if err != nil {
 		return "", err
 	}
 
-	// TODO: upload buf to aliyun oss
+	path, clean, err := a.putFileToOSS(ctx, post.Path, buf)
+	if err != nil {
+		return "", err
+	}
+	defer clean()
+
 	prompt := blades.UserMessage(blades.FilePart{
 		Name:     "image_url",
-		URI:      post.Path,
+		URI:      path,
 		MIMEType: blades.MIMEImagePNG,
 	}, blades.TextPart{
 		Text: "Please summarize the following blog post in the image",
