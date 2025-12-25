@@ -12,6 +12,7 @@ import (
 	"github.com/anyvoxel/airmid/ioc"
 	slogctx "github.com/veqryn/slog-context"
 
+	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
 
@@ -30,7 +31,7 @@ type Framework struct {
 }
 
 // Start will collector post from all domain.
-func (f *Framework) Start(ctx context.Context, ch chan<- collectors.Post) error {
+func (f *Framework) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	defer close(ch)
 
 	slogctx.FromCtx(ctx).InfoContext(ctx, "start to process collector",
@@ -47,7 +48,7 @@ func (f *Framework) Start(ctx context.Context, ch chan<- collectors.Post) error 
 	var wg sync.WaitGroup
 	for _, c := range f.cs {
 		wg.Add(2)
-		cch := make(chan collectors.Post, 10)
+		cch := make(chan apitypes.Post, 10)
 
 		go func(c collectors.Collector) {
 			defer wg.Done()
@@ -66,15 +67,10 @@ func (f *Framework) Start(ctx context.Context, ch chan<- collectors.Post) error 
 			defer wg.Done()
 
 			for post := range cch {
-				if post.Content == "" {
-					slogctx.FromCtx(ctx).InfoContext(ctx, "content is empty, skip",
-						slog.String("Collector", c.Name()),
-						slog.String("Path", post.Path),
-					)
-					continue
-				}
-
 				post.Domain = c.Name()
+				post.ContentResolver = func() (string, error) {
+					return c.ResolvePostContent(slogctx.With(ctx, slog.String("Collector", c.Name())), post)
+				}
 				ch <- post
 			}
 		}(c)

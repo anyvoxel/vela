@@ -15,6 +15,7 @@ import (
 	"github.com/gocolly/colly/v2"
 	slogctx "github.com/veqryn/slog-context"
 
+	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
 
@@ -30,7 +31,6 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
-	postCollector *colly.Collector
 }
 
 var (
@@ -41,7 +41,6 @@ var (
 // AfterPropertiesSet implement InitializingBean
 func (c *Collector) AfterPropertiesSet(context.Context) error {
 	c.listCollector = colly.NewCollector()
-	c.postCollector = colly.NewCollector()
 	return nil
 }
 
@@ -55,63 +54,75 @@ func (c *Collector) Initialize(_ context.Context) error {
 	return nil
 }
 
+// ResolvePostContent implement collector.ResolvePostContent
+func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (string, error) {
+	postCollector := colly.NewCollector()
+	var bodyMarkdown string
+	var err error
+
+	postCollector.OnHTML("div.article", func(h *colly.HTMLElement) {
+		var postBody string
+		postBody, err = h.DOM.Html()
+		if err != nil {
+			return
+		}
+		bodyMarkdown, err = md.NewConverter("", true, nil).ConvertString(postBody)
+		if err != nil {
+			return
+		}
+	})
+
+	err = postCollector.Request("GET", post.Path, nil, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	postCollector.Wait()
+	return bodyMarkdown, err
+}
+
 // Start implement collector.Start
-func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error {
+func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	defer close(ch)
 
 	c.listCollector.OnHTML("ul.toc", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("li", func(_ int, h *colly.HTMLElement) bool {
+		h.ForEachWithBreak("li:not([class])", func(_ int, h *colly.HTMLElement) bool {
 			path, _ := h.DOM.ChildrenFiltered("a").Attr("href")
 			if path == "" {
 				return true
 			}
+			path = "https://research.swtch.com/" + path
 
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article", slog.String("Path", path))
-			err := c.postCollector.Request("GET", "https://research.swtch.com/"+path, nil, nil, nil)
+			title := h.DOM.ChildrenFiltered("a").Text()
+			publishedAt := h.ChildText("span.toc-when")
+			if len(strings.Split(publishedAt, ",")) > 1 {
+				publishedAt = strings.TrimSpace(strings.Split(publishedAt, ",")[0])
+			}
+
+			t, err := time.Parse("January 2006", strings.TrimSpace(publishedAt))
 			if err != nil {
 				slogctx.FromCtx(ctx).ErrorContext(ctx,
-					"cann't request on article",
+					"parse datetime failed",
 					slog.Any("Error", err),
-					slog.String("NextPath", path))
-				return false
+					slog.String("Path", path))
+				return true
 			}
+
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", path),
+				slog.String("Title", title),
+				slog.Any("PublishedAt", t),
+			)
+			post := apitypes.Post{
+				Domain:      c.Name(),
+				Title:       title,
+				Path:        path,
+				PublishedAt: t,
+			}
+			ch <- post
 
 			return true
 		})
-	})
-
-	c.postCollector.OnHTML("div.article", func(h *colly.HTMLElement) {
-		title := h.ChildText("h1")
-		if title == "" {
-			return
-		}
-		titles := strings.Split(title, "\n")
-		if len(titles) > 1 {
-			title = titles[0]
-		}
-
-		publishedAt := h.ChildText("div.when")
-		t, err := time.Parse("Monday, January 02, 2006",
-			strings.TrimSuffix(strings.TrimPrefix(publishedAt, "Posted on "), "."))
-		if err != nil {
-			return
-		}
-
-		postBody, err := h.DOM.Html()
-		if err != nil {
-			return
-		}
-		bodyMarkdown, err := md.NewConverter("", true, nil).ConvertString(postBody)
-		if err != nil {
-			return
-		}
-		ch <- collectors.Post{
-			Domain:      c.Name(),
-			Title:       title,
-			Path:        h.Request.URL.String(),
-			PublishedAt: t,
-			Content:     bodyMarkdown,
-		}
 	})
 
 	err := c.listCollector.Request("GET", "https://research.swtch.com/", nil, colly.NewContext(), nil)
@@ -120,6 +131,5 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 	}
 
 	c.listCollector.Wait()
-	c.postCollector.Wait()
 	return nil
 }

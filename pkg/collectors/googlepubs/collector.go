@@ -14,6 +14,7 @@ import (
 	"github.com/gocolly/colly/v2"
 	slogctx "github.com/veqryn/slog-context"
 
+	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
 
@@ -29,7 +30,6 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
-	postCollector *colly.Collector
 }
 
 var (
@@ -40,7 +40,6 @@ var (
 // AfterPropertiesSet implement InitializingBean
 func (c *Collector) AfterPropertiesSet(context.Context) error {
 	c.listCollector = colly.NewCollector()
-	c.postCollector = colly.NewCollector()
 	return nil
 }
 
@@ -54,52 +53,61 @@ func (c *Collector) Initialize(_ context.Context) error {
 	return nil
 }
 
+// ResolvePostContent implement collector.ResolvePostContent
+func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (string, error) {
+	postCollector := colly.NewCollector()
+	var bodyMarkdown string
+	var err error
+
+	postCollector.OnHTML("#page-content", func(h *colly.HTMLElement) {
+		var postBody string
+		postBody, err = h.DOM.Find("section.offset-two-up").Html()
+		if err != nil {
+			return
+		}
+		bodyMarkdown, err = md.NewConverter("", true, nil).ConvertString(postBody)
+		if err != nil {
+			return
+		}
+	})
+
+	err = postCollector.Request("GET", post.Path, nil, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	postCollector.Wait()
+	return bodyMarkdown, err
+}
+
 // Start implement collector.Start
-func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error {
+func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	defer close(ch)
 
 	c.listCollector.OnHTML("div.list-wrapper", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("div.publications-list", func(_ int, h *colly.HTMLElement) bool {
 			path := h.ChildAttr("div.row-card__body a", "href")
 			if path == "" {
-				return false
+				return true
 			}
 
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article", slog.String("Path", path))
-			err := c.postCollector.Request("GET", path, nil, nil, nil)
-			if err != nil {
-				slogctx.FromCtx(ctx).ErrorContext(ctx,
-					"cann't request on article",
-					slog.Any("Error", err),
-					slog.String("NextPath", path))
-				return false
+			title := h.ChildText("div.row-card__body a")
+			t := time.Time{}
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", path),
+				slog.String("Title", title),
+				slog.Any("PublishedAt", t),
+			)
+			post := apitypes.Post{
+				Domain:      c.Name(),
+				Title:       title,
+				Path:        path,
+				PublishedAt: t,
 			}
+			ch <- post
 
 			return true
 		})
-	})
-
-	c.postCollector.OnHTML("#page-content", func(h *colly.HTMLElement) {
-		title := h.ChildText("h1.headline-2")
-		if title == "" {
-			return
-		}
-
-		postBody, err := h.DOM.Find("section.offset-two-up").Html()
-		if err != nil {
-			return
-		}
-		bodyMarkdown, err := md.NewConverter("", true, nil).ConvertString(postBody)
-		if err != nil {
-			return
-		}
-		ch <- collectors.Post{
-			Domain:      c.Name(),
-			Title:       title,
-			Path:        h.Request.URL.String(),
-			PublishedAt: time.Time{},
-			Content:     bodyMarkdown,
-		}
 	})
 
 	err := c.listCollector.Request("GET", "https://research.google/pubs/", nil, colly.NewContext(), nil)
@@ -108,6 +116,5 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 	}
 
 	c.listCollector.Wait()
-	c.postCollector.Wait()
 	return nil
 }

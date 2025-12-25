@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"reflect"
+	"strings"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -14,6 +15,7 @@ import (
 	"github.com/gocolly/colly/v2"
 	slogctx "github.com/veqryn/slog-context"
 
+	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
 
@@ -29,7 +31,6 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
-	postCollector *colly.Collector
 }
 
 var (
@@ -40,7 +41,6 @@ var (
 // AfterPropertiesSet implement InitializingBean
 func (c *Collector) AfterPropertiesSet(context.Context) error {
 	c.listCollector = colly.NewCollector()
-	c.postCollector = colly.NewCollector()
 	return nil
 }
 
@@ -54,58 +54,71 @@ func (c *Collector) Initialize(_ context.Context) error {
 	return nil
 }
 
+// ResolvePostContent implement collector.ResolvePostContent
+func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (string, error) {
+	postCollector := colly.NewCollector()
+	var bodyMarkdown string
+	var err error
+
+	postCollector.OnHTML("div.post", func(h *colly.HTMLElement) {
+		var postBody string
+		postBody, err = h.DOM.Find("div.post-body").Html()
+		if err != nil {
+			return
+		}
+		bodyMarkdown, err = md.NewConverter("", true, nil).ConvertString(postBody)
+		if err != nil {
+			return
+		}
+	})
+
+	err = postCollector.Request("GET", post.Path, nil, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	postCollector.Wait()
+	return bodyMarkdown, err
+}
+
 // Start implement collector.Start
-func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error {
+func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	defer close(ch)
 
 	c.listCollector.OnHTML("div.Blog", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("div.blog-posts div.post", func(_ int, h *colly.HTMLElement) bool {
 			path := h.ChildAttr("h3.post-title a", "href")
 			if path == "" {
-				return false
+				return true
 			}
 
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article", slog.String("Path", path))
-			err := c.postCollector.Request("GET", path, nil, nil, nil)
+			title := h.ChildText("h3.post-title a")
+			publishedAt := h.ChildText("div.post-header span.post-timestamp time.published")
+			t, err := time.Parse("January 02, 2006", strings.TrimSpace(publishedAt))
 			if err != nil {
 				slogctx.FromCtx(ctx).ErrorContext(ctx,
-					"cann't request on article",
+					"parse datetime failed",
 					slog.Any("Error", err),
-					slog.String("NextPath", path))
-				return false
+					slog.String("Path", path))
+				return true
 			}
+
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", path),
+				slog.String("Title", title),
+				slog.Any("PublishedAt", t),
+			)
+
+			post := apitypes.Post{
+				Domain:      c.Name(),
+				Title:       title,
+				Path:        path,
+				PublishedAt: t,
+			}
+			ch <- post
 
 			return true
 		})
-	})
-
-	c.postCollector.OnHTML("div.post", func(h *colly.HTMLElement) {
-		title := h.ChildText("h3.post-title")
-		if title == "" {
-			return
-		}
-
-		publishedAt := h.ChildAttr("time.published", "datetime")
-		t, err := time.Parse("2006-01-02T15:04:05-07:00", publishedAt)
-		if err != nil {
-			return
-		}
-
-		postBody, err := h.DOM.Find("div.post-body").Html()
-		if err != nil {
-			return
-		}
-		bodyMarkdown, err := md.NewConverter("", true, nil).ConvertString(postBody)
-		if err != nil {
-			return
-		}
-		ch <- collectors.Post{
-			Domain:      c.Name(),
-			Title:       title,
-			Path:        h.Request.URL.String(),
-			PublishedAt: t,
-			Content:     bodyMarkdown,
-		}
 	})
 
 	err := c.listCollector.Request("GET", "https://muratbuffalo.blogspot.com", nil, colly.NewContext(), nil)
@@ -114,6 +127,5 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 	}
 
 	c.listCollector.Wait()
-	c.postCollector.Wait()
 	return nil
 }

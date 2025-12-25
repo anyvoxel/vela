@@ -13,7 +13,7 @@ import (
 	slogctx "github.com/veqryn/slog-context"
 
 	"github.com/anyvoxel/vela/pkg/agents"
-	"github.com/anyvoxel/vela/pkg/collectors"
+	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors/framework"
 	"github.com/anyvoxel/vela/pkg/storage"
 )
@@ -63,7 +63,7 @@ func (a *Application) SetApplication(application airapp.Application) {
 
 // Start will start the application
 func (a *Application) Start(ctx context.Context) error {
-	ch := make(chan collectors.Post, 100)
+	ch := make(chan apitypes.Post, 100)
 	results := make([]*storage.SummaryResult, 0)
 
 	var wg sync.WaitGroup
@@ -82,11 +82,11 @@ func (a *Application) Start(ctx context.Context) error {
 		defer wg.Done()
 
 		for post := range ch {
-			if a.store.SummaryExists(ctx, post.Domain, post.Title) {
+			if a.store.SummaryExists(ctx, post.Domain, post.Path) {
 				continue
 			}
 
-			result, err := a.summaryAgent.Summary(ctx, post.Content)
+			result, err := a.summaryAgent.Summary(ctx, post)
 			if err != nil {
 				slogctx.FromCtx(ctx).ErrorContext(ctx,
 					"summary post failed",

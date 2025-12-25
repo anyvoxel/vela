@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"reflect"
+	"strings"
 	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
@@ -14,6 +15,7 @@ import (
 	"github.com/gocolly/colly/v2"
 	slogctx "github.com/veqryn/slog-context"
 
+	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors"
 )
 
@@ -29,7 +31,6 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
-	postCollector *colly.Collector
 }
 
 var (
@@ -40,7 +41,6 @@ var (
 // AfterPropertiesSet implement InitializingBean
 func (c *Collector) AfterPropertiesSet(context.Context) error {
 	c.listCollector = colly.NewCollector()
-	c.postCollector = colly.NewCollector()
 	return nil
 }
 
@@ -54,58 +54,70 @@ func (c *Collector) Initialize(_ context.Context) error {
 	return nil
 }
 
+// ResolvePostContent implement collector.ResolvePostContent
+func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (string, error) {
+	postCollector := colly.NewCollector()
+	var bodyMarkdown string
+	var err error
+
+	postCollector.OnHTML("body.single-post div.wp-site-blocks", func(h *colly.HTMLElement) {
+		var postBody string
+		postBody, err = h.DOM.Find("main.wp-block-group div.entry-content").Html()
+		if err != nil {
+			return
+		}
+		bodyMarkdown, err = md.NewConverter("", true, nil).ConvertString(postBody)
+		if err != nil {
+			return
+		}
+	})
+
+	err = postCollector.Request("GET", post.Path, nil, nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	postCollector.Wait()
+	return bodyMarkdown, err
+}
+
 // Start implement collector.Start
-func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error {
+func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	defer close(ch)
 
 	c.listCollector.OnHTML("ul.wp-block-post-template", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("li.wp-block-post", func(_ int, h *colly.HTMLElement) bool {
 			path := h.ChildAttr("h2.wp-block-post-title a", "href")
 			if path == "" {
-				return false
+				return true
 			}
 
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article", slog.String("Path", path))
-			err := c.postCollector.Request("GET", path, nil, nil, nil)
+			title := h.ChildText("h2.wp-block-post-title a")
+			publishedAt := h.ChildText("time a")
+			t, err := time.Parse("January 2, 2006", strings.TrimSpace(publishedAt))
 			if err != nil {
 				slogctx.FromCtx(ctx).ErrorContext(ctx,
-					"cann't request on article",
+					"parse datetime failed",
 					slog.Any("Error", err),
-					slog.String("NextPath", path))
-				return false
+					slog.String("Path", path))
+				return true
 			}
+
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", path),
+				slog.String("Title", title),
+				slog.Any("PublishedAt", t),
+			)
+			post := apitypes.Post{
+				Domain:      c.Name(),
+				Title:       title,
+				Path:        path,
+				PublishedAt: t,
+			}
+			ch <- post
 
 			return true
 		})
-	})
-
-	c.postCollector.OnHTML("body.single-post div.wp-site-blocks", func(h *colly.HTMLElement) {
-		title := h.ChildText("h1.wp-block-post-title")
-		if title == "" {
-			return
-		}
-
-		publishedAt := h.ChildAttr("div.wp-block-post-date time", "datetime")
-		t, err := time.Parse(time.RFC3339, publishedAt)
-		if err != nil {
-			return
-		}
-
-		postBody, err := h.DOM.Find("main.wp-block-group div.entry-content").Html()
-		if err != nil {
-			return
-		}
-		bodyMarkdown, err := md.NewConverter("", true, nil).ConvertString(postBody)
-		if err != nil {
-			return
-		}
-		ch <- collectors.Post{
-			Domain:      c.Name(),
-			Title:       title,
-			Path:        h.Request.URL.String(),
-			PublishedAt: t,
-			Content:     bodyMarkdown,
-		}
 	})
 
 	err := c.listCollector.Request("GET", "https://www.siddharthbharath.com/blog/", nil, colly.NewContext(), nil)
@@ -114,6 +126,5 @@ func (c *Collector) Start(ctx context.Context, ch chan<- collectors.Post) error 
 	}
 
 	c.listCollector.Wait()
-	c.postCollector.Wait()
 	return nil
 }
