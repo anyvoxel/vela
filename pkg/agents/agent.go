@@ -81,7 +81,7 @@ func (a *Summarizer) AfterPropertiesSet(context.Context) error {
 
 	cfg := oss.LoadDefaultConfig().
 		WithCredentialsProvider(credentials.NewEnvironmentVariableCredentialsProvider()).
-		WithRegion(a.ossBucket)
+		WithRegion(a.ossRegion)
 	a.ossClient = oss.NewClient(cfg)
 
 	a.agent = agent
