@@ -179,7 +179,11 @@ func (a *Summarizer) summarizeByText(ctx context.Context, post apitypes.Post) (s
 func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (string, error) {
 	var buf []byte
 	var err error
-	err = chromedp.Run(ctx,
+
+	dpctx, cancel := chromedp.NewContext(ctx)
+	defer cancel()
+
+	err = chromedp.Run(dpctx,
 		chromedp.Navigate(post.Path),
 		chromedp.Sleep(10*time.Second),
 		chromedp.WaitReady("body"),
@@ -188,7 +192,6 @@ func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (st
 			return err
 		}),
 	)
-	_ = buf
 
 	if err != nil {
 		return "", err
@@ -216,7 +219,11 @@ func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (st
 func (a *Summarizer) summarizeByImage(ctx context.Context, post apitypes.Post) (string, error) {
 	var buf []byte
 	var err error
-	err = chromedp.Run(ctx,
+
+	dpctx, cancel := chromedp.NewContext(ctx)
+	defer cancel()
+
+	err = chromedp.Run(dpctx,
 		chromedp.Navigate(post.Path),
 		chromedp.Sleep(10*time.Second),
 		chromedp.WaitReady("body"),
