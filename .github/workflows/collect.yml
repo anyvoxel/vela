@@ -26,6 +26,8 @@ jobs:
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
           OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
           GITHUB_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          OSS_ACCESS_KEY_ID: ${{ vars.ALIYUN_OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
         run: |
           go run main.go
       - name: Prepare commit changes
