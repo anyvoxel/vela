@@ -180,7 +180,15 @@ func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (st
 	var buf []byte
 	var err error
 
-	dpctx, cancel := chromedp.NewContext(ctx)
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("headless", true),
+	)
+
+	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
+	defer cancel()
+	dpctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
 	err = chromedp.Run(dpctx,

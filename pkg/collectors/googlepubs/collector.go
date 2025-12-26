@@ -85,13 +85,13 @@ func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	defer close(ch)
 
 	c.listCollector.OnHTML("div.list-wrapper", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("div.publications-list", func(_ int, h *colly.HTMLElement) bool {
-			path := h.ChildAttr("div.row-card__body a", "href")
+		h.ForEachWithBreak("div.publications-list div.row-card", func(_ int, h *colly.HTMLElement) bool {
+			path := h.ChildAttr("div.row-card__body > a", "href")
 			if path == "" {
 				return true
 			}
 
-			title := h.ChildText("div.row-card__body a")
+			title := h.ChildText("div.row-card__body > a")
 			t := time.Time{}
 			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
 				slog.String("Path", path),
