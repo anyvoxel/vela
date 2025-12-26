@@ -81,8 +81,9 @@ func (a *Application) Start(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 
+		existPaths := map[string]bool{}
 		for post := range ch {
-			if a.store.SummaryExists(ctx, post.Domain, post.Path) {
+			if a.store.SummaryExists(ctx, post.Path) || existPaths[post.Path] {
 				continue
 			}
 
@@ -98,6 +99,7 @@ func (a *Application) Start(ctx context.Context) error {
 				continue
 			}
 
+			existPaths[post.Path] = true
 			results = append(results, &storage.SummaryResult{
 				Domain:      post.Domain,
 				Path:        post.Path,

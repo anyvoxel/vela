@@ -86,12 +86,12 @@ func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 
 	c.listCollector.OnHTML("main.SearchResultsModule-main", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("li.SearchResultsModule-results-item", func(_ int, h *colly.HTMLElement) bool {
-			path := h.ChildAttr("a.Link", "href")
+			path := h.ChildAttr("div.PromoF-title a.Link", "href")
 			if path == "" {
 				return true
 			}
 
-			title := h.ChildText("a.Link")
+			title := h.ChildText("div.PromoF-title a.Link")
 			publishedAt := h.ChildText("div.PromoF-details div.PromoF-date")
 			t, err := time.Parse("January 2, 2006", publishedAt)
 			if err != nil {

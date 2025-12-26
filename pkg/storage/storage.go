@@ -39,7 +39,7 @@ type SummaryResult struct {
 
 // Storage will access and persist to all previous posts.
 type Storage struct {
-	existPosts map[string]map[string]bool
+	existPosts map[string]bool
 	dataPath   string
 	dir        string `airmid:"value:${vela.storage.dir:=./}"`
 }
@@ -63,7 +63,7 @@ func (s *Storage) AfterPropertiesSet(ctx context.Context) error {
 		}
 	}
 
-	s.existPosts = map[string]map[string]bool{}
+	s.existPosts = map[string]bool{}
 	s.dataPath = dataPath
 
 	err = s.readPreviousSummary(ctx)
@@ -113,7 +113,7 @@ func (s *Storage) readPreviousSummarySubDir(ctx context.Context, subdir string) 
 	return nil
 }
 
-func (s *Storage) readPreviousSummaryFile(_ context.Context, dir string, file string) error {
+func (s *Storage) readPreviousSummaryFile(ctx context.Context, dir string, file string) error {
 	f, err := os.Open(path.Join(dir, file))
 	if err != nil {
 		return err
@@ -132,26 +132,27 @@ func (s *Storage) readPreviousSummaryFile(_ context.Context, dir string, file st
 			return err
 		}
 
-		domain, ok := s.existPosts[result.Domain]
-		if !ok {
-			s.existPosts[result.Domain] = map[string]bool{
-				result.Title: true,
-			}
-			continue
+		_, ok := s.existPosts[result.Path]
+		if ok {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"duplicate path in storage",
+				slog.String("Path", result.Path),
+			)
 		}
+		s.existPosts[result.Path] = true
 
-		domain[result.Path] = true
+		if len(strings.Split(result.Title, "\n")) > 1 {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"post title has multi line",
+				slog.String("Path", result.Path),
+			)
+		}
 	}
 }
 
 // SummaryExists return true if this summary already persist
-func (s *Storage) SummaryExists(_ context.Context, domain string, path string) bool {
-	d, ok := s.existPosts[domain]
-	if !ok {
-		return false
-	}
-
-	return d[path]
+func (s *Storage) SummaryExists(_ context.Context, path string) bool {
+	return s.existPosts[path]
 }
 
 // Put will persist all result to jsonl file.
@@ -167,7 +168,7 @@ func (s *Storage) Put(ctx context.Context, results []*SummaryResult) error {
 	defer f.Close() //nolint
 
 	for _, result := range results {
-		if s.SummaryExists(ctx, result.Domain, result.Path) {
+		if s.SummaryExists(ctx, result.Path) {
 			continue
 		}
 
