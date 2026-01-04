@@ -1,15 +1,18 @@
 name: collect
 
 on:
-  issues:
-    types: [opened]
   issue_comment:
-    types: [created, deleted, edited]
+    types: [created]
   schedule:
     - cron: "15 4 * * 0"
 
 jobs:
   run:
+    name: |
+      execute-action - ${{ github.event_name == 'schedule' && 'Scheduled Run' || 'Issue Comemnt' }}
+    if: |
+      github.event_name == 'schedule' || 
+      (github.event_name == 'issue_comment') && contains(github.event.comment.body, '/collect')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
