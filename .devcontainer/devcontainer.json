@@ -5,7 +5,10 @@
     // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
     // "image": "mcr.microsoft.com/devcontainers/go:1.23-bullseye",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "Dockerfile",
+        "args": {
+            "platform": "linux/amd64"
+        }
     },
     // Features to add to the dev container. More info: https://containers.dev/features.
     "features": {
@@ -25,7 +28,8 @@
         "ghcr.io/devcontainers-community/features/llvm": {}
     },
     "containerEnv": {
-        "TZ": "Asia/Shanghai"
+        "TZ": "Asia/Shanghai",
+        "GOOGLE_CLOUD_PROJECT": "${localEnv:GOOGLE_CLOUD_PROJECT}"
     },
     "runArgs": [
         "--cap-add=SYS_PTRACE",
@@ -36,6 +40,11 @@
         {
             "source": "/var/run/docker.sock",
             "target": "/var/run/docker.sock",
+            "type": "bind"
+        },
+        {
+            "source": "${localEnv:HOME}/.gemini",
+            "target": "/home/vscode/.gemini",
             "type": "bind"
         }
     ],
