@@ -28,6 +28,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/collectors/mydistributed"
 	_ "github.com/anyvoxel/vela/pkg/collectors/nickyt"
 	_ "github.com/anyvoxel/vela/pkg/collectors/researchrsc"
+	_ "github.com/anyvoxel/vela/pkg/collectors/sebastianraschka"
 	_ "github.com/anyvoxel/vela/pkg/collectors/shopifyblog"
 	_ "github.com/anyvoxel/vela/pkg/collectors/siddharthbharath"
 	_ "github.com/anyvoxel/vela/pkg/collectors/simonwillison"
