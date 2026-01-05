@@ -3,6 +3,8 @@ package framework
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"reflect"
 	"sync"
@@ -25,9 +27,29 @@ func init() {
 	))
 }
 
+var (
+	_ ioc.InitializingBean = (*Framework)(nil)
+
+	// ErrDuplicateCollector is returned when a collector with the same name already exists.
+	ErrDuplicateCollector = errors.New("duplicate collector name")
+)
+
 // Framework will orchestration all collectors.
 type Framework struct {
 	cs []collectors.Collector `airmid:"autowire:?"`
+}
+
+// AfterPropertiesSet implement InitializingBean
+func (f *Framework) AfterPropertiesSet(_ context.Context) error {
+	// ensure all collector names are unique
+	names := make(map[string]struct{})
+	for _, c := range f.cs {
+		if _, ok := names[c.Name()]; ok {
+			return fmt.Errorf("%w: %s", ErrDuplicateCollector, c.Name())
+		}
+		names[c.Name()] = struct{}{}
+	}
+	return nil
 }
 
 // Start will collector post from all domain.
