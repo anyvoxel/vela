@@ -26,6 +26,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/collectors/micahlerner"
 	_ "github.com/anyvoxel/vela/pkg/collectors/muratbuffalo"
 	_ "github.com/anyvoxel/vela/pkg/collectors/mydistributed"
+	_ "github.com/anyvoxel/vela/pkg/collectors/nickyt"
 	_ "github.com/anyvoxel/vela/pkg/collectors/researchrsc"
 	_ "github.com/anyvoxel/vela/pkg/collectors/shopifyblog"
 	_ "github.com/anyvoxel/vela/pkg/collectors/siddharthbharath"
