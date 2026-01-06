@@ -30,8 +30,8 @@ func init() {
 // Application is the represent of vela.
 type Application struct {
 	f            *framework.Framework `airmid:"autowire:?"`
-	summaryAgent *agents.Summarizer   `airmid:"autowire:?"`
-	store        *storage.Storage     `airmid:"autowire:?"`
+	summaryAgent agents.Summarizer    `airmid:"autowire:vela.agents.summarizer"`
+	store        storage.Storage      `airmid:"autowire:vela.storage.storage"`
 
 	airmidApplication airapp.Application
 }

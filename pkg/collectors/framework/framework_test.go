@@ -5,40 +5,30 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
-	"github.com/anyvoxel/vela/pkg/apitypes"
 	"github.com/anyvoxel/vela/pkg/collectors"
+	"github.com/anyvoxel/vela/pkg/collectors/mocks"
 )
-
-// MockCollector is a mock implementation of the Collector interface for testing.
-type MockCollector struct {
-	name string
-}
-
-func (m *MockCollector) Name() string {
-	return m.name
-}
-
-func (m *MockCollector) Initialize(_ context.Context) error {
-	return nil
-}
-
-func (m *MockCollector) Start(_ context.Context, _ chan<- apitypes.Post) error {
-	return nil
-}
-
-func (m *MockCollector) ResolvePostContent(_ context.Context, _ apitypes.Post) (string, error) {
-	return "", nil
-}
 
 func TestFramework_AfterPropertiesSet_DuplicateCollectorName(t *testing.T) {
 	g := gomega.NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	c1 := mocks.NewMockCollector(mockCtrl)
+	c1.EXPECT().Name().Return("collector-a").AnyTimes()
+	c2 := mocks.NewMockCollector(mockCtrl)
+	c2.EXPECT().Name().Return("collector-b").AnyTimes()
+	c3 := mocks.NewMockCollector(mockCtrl)
+	c3.EXPECT().Name().Return("collector-a").AnyTimes()
+
 	// Create a Framework with duplicate collectors
 	framework := &Framework{
 		cs: []collectors.Collector{
-			&MockCollector{name: "collector-a"},
-			&MockCollector{name: "collector-b"},
-			&MockCollector{name: "collector-a"},
+			c1,
+			c2,
+			c3,
 		},
 	}
 
@@ -52,12 +42,22 @@ func TestFramework_AfterPropertiesSet_DuplicateCollectorName(t *testing.T) {
 
 func TestFramework_AfterPropertiesSet_NoDuplicateCollectorName(t *testing.T) {
 	g := gomega.NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	c1 := mocks.NewMockCollector(mockCtrl)
+	c1.EXPECT().Name().Return("collector-a").AnyTimes()
+	c2 := mocks.NewMockCollector(mockCtrl)
+	c2.EXPECT().Name().Return("collector-b").AnyTimes()
+	c3 := mocks.NewMockCollector(mockCtrl)
+	c3.EXPECT().Name().Return("collector-c").AnyTimes()
+
 	// Create a Framework with unique collectors
 	framework := &Framework{
 		cs: []collectors.Collector{
-			&MockCollector{name: "collector-a"},
-			&MockCollector{name: "collector-b"},
-			&MockCollector{name: "collector-c"},
+			c1,
+			c2,
+			c3,
 		},
 	}
 

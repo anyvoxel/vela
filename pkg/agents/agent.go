@@ -30,7 +30,7 @@ func init() {
 	anvil.Must(airapp.RegisterBeanDefinition(
 		"vela.agents.summarizer",
 		ioc.MustNewBeanDefinition(
-			reflect.TypeFor[*Summarizer](),
+			reflect.TypeFor[*summarizerImpl](),
 		),
 	))
 }
@@ -38,8 +38,14 @@ func init() {
 //go:embed system_prompts.md
 var systemPrompts string
 
-// Summarizer is a agent that can summarize a blog post.
-type Summarizer struct {
+// Summarizer is the interface for summarizer.
+type Summarizer interface {
+	// Summary summarizes the given content.
+	Summary(ctx context.Context, post apitypes.Post) (string, error)
+}
+
+// summarizerImpl is a agent that can summarize a blog post.
+type summarizerImpl struct {
 	agent         blades.Agent
 	summarizeType string `airmid:"value:${vela.summarize.type:=image}"`
 	systemPrompt  string
@@ -48,16 +54,16 @@ type Summarizer struct {
 	ossBucket string `airmid:"value:${vela.summarize.oss.bucket:=anyvoxel-vela}"`
 	ossClient *oss.Client
 
-	// Summary summarizes the given content.
-	Summary func(ctx context.Context, post apitypes.Post) (string, error)
+	summaryFn func(ctx context.Context, post apitypes.Post) (string, error)
 }
 
 var (
-	_ ioc.InitializingBean = (*Summarizer)(nil)
+	_ ioc.InitializingBean = (*summarizerImpl)(nil)
+	_ Summarizer           = (*summarizerImpl)(nil)
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (a *Summarizer) AfterPropertiesSet(context.Context) error {
+func (a *summarizerImpl) AfterPropertiesSet(context.Context) error {
 	model := openai.NewModel(os.Getenv("OPENAI_MODEL"), openai.Config{
 		BaseURL: os.Getenv("OPENAI_BASE_URL"),
 		APIKey:  os.Getenv("OPENAI_API_KEY"),
@@ -70,11 +76,11 @@ func (a *Summarizer) AfterPropertiesSet(context.Context) error {
 
 	switch a.summarizeType {
 	case "image":
-		a.Summary = a.summarizeByImage
+		a.summaryFn = a.summarizeByImage
 	case "pdf":
-		a.Summary = a.summarizeByPdf
+		a.summaryFn = a.summarizeByPdf
 	case "text":
-		a.Summary = a.summarizeByText
+		a.summaryFn = a.summarizeByText
 	default:
 		return xerrors.Errorf("Unknown summary type: %s", a.summarizeType)
 	}
@@ -89,7 +95,12 @@ func (a *Summarizer) AfterPropertiesSet(context.Context) error {
 	return nil
 }
 
-func (a *Summarizer) putFileToOSS(ctx context.Context, filename string, data []byte) (string, func(), error) {
+// Summary implement Summarizer.Summary
+func (a *summarizerImpl) Summary(ctx context.Context, post apitypes.Post) (string, error) {
+	return a.summaryFn(ctx, post)
+}
+
+func (a *summarizerImpl) putFileToOSS(ctx context.Context, filename string, data []byte) (string, func(), error) {
 	// Result looks like:
 	// {
 	// 	"ContentMD5": "CY9rzUYh03PK3k6DJie09g==",
@@ -150,7 +161,7 @@ func (a *Summarizer) putFileToOSS(ctx context.Context, filename string, data []b
 	}, nil
 }
 
-func (a *Summarizer) summarizeByText(ctx context.Context, post apitypes.Post) (string, error) {
+func (a *summarizerImpl) summarizeByText(ctx context.Context, post apitypes.Post) (string, error) {
 	if post.ContentResolver == nil {
 		return "", xerrors.Errorf("cann't got content with nil resolver, domain: %s, path: %s", post.Domain, post.Path)
 	}
@@ -176,7 +187,7 @@ func (a *Summarizer) summarizeByText(ctx context.Context, post apitypes.Post) (s
 	return result.Text(), nil
 }
 
-func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (string, error) {
+func (a *summarizerImpl) summarizeByPdf(ctx context.Context, post apitypes.Post) (string, error) {
 	var buf []byte
 	var err error
 
@@ -224,7 +235,7 @@ func (a *Summarizer) summarizeByPdf(ctx context.Context, post apitypes.Post) (st
 	return result.Text(), nil
 }
 
-func (a *Summarizer) summarizeByImage(ctx context.Context, post apitypes.Post) (string, error) {
+func (a *summarizerImpl) summarizeByImage(ctx context.Context, post apitypes.Post) (string, error) {
 	var buf []byte
 	var err error
 

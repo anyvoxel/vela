@@ -16,6 +16,7 @@ require (
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/onsi/gomega v1.38.2
 	github.com/veqryn/slog-context v0.8.0
+	go.uber.org/mock v0.6.0
 )
 
 require (
