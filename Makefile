@@ -143,7 +143,9 @@ clean:
 MOCKGEN := $(BIN_DIR)/mockgen
 .PHONY: mock
 mock: $(MOCKGEN)
-	mockgen -source=pkg/server/server.go -destination=pkg/server/mocks/server.go -package=mocks
+	mockgen -source=pkg/storage/storage.go -destination=pkg/storage/mocks/storage.go -package=mocks
+	mockgen -source=pkg/agents/agent.go -destination=pkg/agents/mocks/agent.go -package=mocks
+	mockgen -source=pkg/collectors/types.go -destination=pkg/collectors/mocks/collector.go -package=mocks
 
 $(MOCKGEN):
 	go install go.uber.org/mock/mockgen@latest

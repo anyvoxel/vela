@@ -23,7 +23,7 @@ func init() {
 	anvil.Must(airapp.RegisterBeanDefinition(
 		"vela.storage.storage",
 		ioc.MustNewBeanDefinition(
-			reflect.TypeOf((*Storage)(nil)),
+			reflect.TypeOf((*localStorage)(nil)),
 		),
 	))
 }
@@ -37,27 +37,34 @@ type SummaryResult struct {
 	PublishedAt time.Time `json:"published_at"`
 }
 
-// Storage will access and persist to all previous posts.
-type Storage struct {
+// Storage is the interface for storage.
+type Storage interface {
+	// SummaryExists return true if this summary already persist
+	SummaryExists(ctx context.Context, path string) bool
+	// Put will persist all result to jsonl file.
+	Put(ctx context.Context, results []*SummaryResult) error
+}
+
+// localStorage will access and persist to all previous posts.
+type localStorage struct {
 	existPosts map[string]bool
 	dataPath   string
 	dir        string `airmid:"value:${vela.storage.dir:=./}"`
-
-	Put func(ctx context.Context, results []*SummaryResult) error
 }
 
 // NewStorage creates a new Storage with the given directory.
 // This is intended for testing purposes.
-func NewStorage(dir string) *Storage {
-	return &Storage{dir: dir}
+func NewStorage(dir string) Storage {
+	return &localStorage{dir: dir}
 }
 
 var (
-	_ ioc.InitializingBean = (*Storage)(nil)
+	_ ioc.InitializingBean = (*localStorage)(nil)
+	_ Storage              = (*localStorage)(nil)
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (s *Storage) AfterPropertiesSet(ctx context.Context) error {
+func (s *localStorage) AfterPropertiesSet(ctx context.Context) error {
 	dataPath := path.Join(s.dir, "data")
 	_, err := os.Stat(dataPath)
 	if err != nil {
@@ -73,7 +80,6 @@ func (s *Storage) AfterPropertiesSet(ctx context.Context) error {
 
 	s.existPosts = map[string]bool{}
 	s.dataPath = dataPath
-	s.Put = s.put
 
 	err = s.readPreviousSummary(ctx)
 	if err != nil {
@@ -83,7 +89,7 @@ func (s *Storage) AfterPropertiesSet(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) readPreviousSummary(ctx context.Context) error {
+func (s *localStorage) readPreviousSummary(ctx context.Context) error {
 	dirEntries, err := os.ReadDir(s.dataPath)
 	if err != nil {
 		return err
@@ -102,7 +108,7 @@ func (s *Storage) readPreviousSummary(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) readPreviousSummarySubDir(ctx context.Context, subdir string) error {
+func (s *localStorage) readPreviousSummarySubDir(ctx context.Context, subdir string) error {
 	dirEntries, err := os.ReadDir(path.Join(s.dataPath, subdir))
 	if err != nil {
 		return err
@@ -122,7 +128,7 @@ func (s *Storage) readPreviousSummarySubDir(ctx context.Context, subdir string) 
 	return nil
 }
 
-func (s *Storage) readPreviousSummaryFile(ctx context.Context, dir string, file string) error {
+func (s *localStorage) readPreviousSummaryFile(ctx context.Context, dir string, file string) error {
 	f, err := os.Open(path.Join(dir, file))
 	if err != nil {
 		return err
@@ -160,12 +166,12 @@ func (s *Storage) readPreviousSummaryFile(ctx context.Context, dir string, file 
 }
 
 // SummaryExists return true if this summary already persist
-func (s *Storage) SummaryExists(_ context.Context, path string) bool {
+func (s *localStorage) SummaryExists(_ context.Context, path string) bool {
 	return s.existPosts[path]
 }
 
-// put will persist all result to jsonl file.
-func (s *Storage) put(ctx context.Context, results []*SummaryResult) error {
+// Put will persist all result to jsonl file.
+func (s *localStorage) Put(ctx context.Context, results []*SummaryResult) error {
 	if len(results) == 0 {
 		return nil
 	}
@@ -192,7 +198,7 @@ func (s *Storage) put(ctx context.Context, results []*SummaryResult) error {
 	return nil
 }
 
-func (s *Storage) openFile(_ context.Context) (*os.File, error) {
+func (s *localStorage) openFile(_ context.Context) (*os.File, error) {
 	monthStr := time.Now().UTC().Format("200601")
 	dataDir := path.Join(s.dir, "data", monthStr)
 	_, err := os.Stat(dataDir)

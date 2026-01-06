@@ -11,7 +11,7 @@ import (
 
 func TestNewSummarizer(t *testing.T) {
 	g := gomega.NewWithT(t)
-	s := &Summarizer{
+	s := &summarizerImpl{
 		summarizeType: "text",
 	}
 	err := s.AfterPropertiesSet(context.Background())
