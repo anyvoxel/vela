@@ -94,7 +94,6 @@ func (c *Collector) extracePublishedAt(_ context.Context, _ *colly.HTMLElement) 
 
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-	defer close(ch)
 
 	c.listCollector.OnHTML("#main", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("div[data-baseweb=flex-grid-item]", func(_ int, h *colly.HTMLElement) bool {

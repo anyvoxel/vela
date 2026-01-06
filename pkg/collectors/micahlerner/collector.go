@@ -149,7 +149,6 @@ func (c *Collector) extracePublishedAt(ctx context.Context, h *colly.HTMLElement
 
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-	defer close(ch)
 
 	c.listCollector.OnHTML("body article section div ul", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("li", func(_ int, h *colly.HTMLElement) bool {

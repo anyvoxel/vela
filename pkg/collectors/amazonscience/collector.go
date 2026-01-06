@@ -82,7 +82,6 @@ func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (s
 
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-	defer close(ch)
 
 	c.listCollector.OnHTML("main.SearchResultsModule-main", func(h *colly.HTMLElement) {
 		h.ForEachWithBreak("li.SearchResultsModule-results-item", func(_ int, h *colly.HTMLElement) bool {
