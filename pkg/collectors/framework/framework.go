@@ -39,6 +39,12 @@ type Framework struct {
 	cs []collectors.Collector `airmid:"autowire:?"`
 }
 
+// NewFramework creates a new Framework with the given collectors.
+// This is intended for testing purposes.
+func NewFramework(cs []collectors.Collector) *Framework {
+	return &Framework{cs: cs}
+}
+
 // AfterPropertiesSet implement InitializingBean
 func (f *Framework) AfterPropertiesSet(_ context.Context) error {
 	// ensure all collector names are unique
@@ -54,8 +60,6 @@ func (f *Framework) AfterPropertiesSet(_ context.Context) error {
 
 // Start will collector post from all domain.
 func (f *Framework) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-	defer close(ch)
-
 	slogctx.FromCtx(ctx).InfoContext(ctx, "start to process collector",
 		slog.Int("CollectorCount", len(f.cs)),
 	)
@@ -74,6 +78,7 @@ func (f *Framework) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 
 		go func(c collectors.Collector) {
 			defer wg.Done()
+			defer close(cch)
 
 			err := c.Start(
 				slogctx.With(ctx, slog.String("Collector", c.Name())),
@@ -81,6 +86,7 @@ func (f *Framework) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 			if err != nil {
 				slogctx.FromCtx(ctx).ErrorContext(ctx, "start collector failed",
 					slog.String("Collector", c.Name()),
+					slog.Any("Error", err),
 				)
 			}
 		}(c)

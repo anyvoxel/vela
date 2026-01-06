@@ -71,6 +71,7 @@ func (a *Application) Start(ctx context.Context) error {
 
 	go func() {
 		defer wg.Done()
+		defer close(ch)
 
 		err := a.f.Start(ctx, ch)
 		if err != nil {

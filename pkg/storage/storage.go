@@ -42,6 +42,14 @@ type Storage struct {
 	existPosts map[string]bool
 	dataPath   string
 	dir        string `airmid:"value:${vela.storage.dir:=./}"`
+
+	Put func(ctx context.Context, results []*SummaryResult) error
+}
+
+// NewStorage creates a new Storage with the given directory.
+// This is intended for testing purposes.
+func NewStorage(dir string) *Storage {
+	return &Storage{dir: dir}
 }
 
 var (
@@ -65,6 +73,7 @@ func (s *Storage) AfterPropertiesSet(ctx context.Context) error {
 
 	s.existPosts = map[string]bool{}
 	s.dataPath = dataPath
+	s.Put = s.put
 
 	err = s.readPreviousSummary(ctx)
 	if err != nil {
@@ -155,8 +164,8 @@ func (s *Storage) SummaryExists(_ context.Context, path string) bool {
 	return s.existPosts[path]
 }
 
-// Put will persist all result to jsonl file.
-func (s *Storage) Put(ctx context.Context, results []*SummaryResult) error {
+// put will persist all result to jsonl file.
+func (s *Storage) put(ctx context.Context, results []*SummaryResult) error {
 	if len(results) == 0 {
 		return nil
 	}
@@ -185,20 +194,21 @@ func (s *Storage) Put(ctx context.Context, results []*SummaryResult) error {
 
 func (s *Storage) openFile(_ context.Context) (*os.File, error) {
 	monthStr := time.Now().UTC().Format("200601")
-	_, err := os.Stat(path.Join("./data", monthStr))
+	dataDir := path.Join(s.dir, "data", monthStr)
+	_, err := os.Stat(dataDir)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
 
-		err = os.MkdirAll(path.Join("./data", monthStr), 0755)
+		err = os.MkdirAll(dataDir, 0755)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	dataStr := time.Now().UTC().Format("20060102")
-	filename := path.Join("./data", monthStr, dataStr+".jsonl")
+	filename := path.Join(dataDir, dataStr+".jsonl")
 	_, err = os.Stat(filename)
 	if err != nil {
 		if !os.IsNotExist(err) {
