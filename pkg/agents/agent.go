@@ -187,14 +187,14 @@ func (a *summarizerImpl) summarizeByText(ctx context.Context, post apitypes.Post
 	return result.Text(), nil
 }
 
-func (a *summarizerImpl) summarizeByPdf(ctx context.Context, post apitypes.Post) (string, error) {
-	var buf []byte
-	var err error
-
+func (a *summarizerImpl) runActionInChrome(ctx context.Context, path string, fn chromedp.ActionFunc) error {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("headless", true),
+		//nolint
+		// See https://stackoverflow.com/questions/70535305/getting-403-forbidden-error-when-using-headless-chrome-with-python-selenium
+		chromedp.Flag("user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36"),
 	)
 
 	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
@@ -202,15 +202,22 @@ func (a *summarizerImpl) summarizeByPdf(ctx context.Context, post apitypes.Post)
 	dpctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
-	err = chromedp.Run(dpctx,
-		chromedp.Navigate(post.Path),
+	return chromedp.Run(dpctx,
+		chromedp.Navigate(path),
 		chromedp.Sleep(10*time.Second),
 		chromedp.WaitReady("body"),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			buf, _, err = page.PrintToPDF().Do(ctx)
-			return err
-		}),
+		fn,
 	)
+}
+
+func (a *summarizerImpl) summarizeByPdf(ctx context.Context, post apitypes.Post) (string, error) {
+	var buf []byte
+	var err error
+
+	err = a.runActionInChrome(ctx, post.Path, chromedp.ActionFunc(func(ctx context.Context) error {
+		buf, _, err = page.PrintToPDF().Do(ctx)
+		return err
+	}))
 
 	if err != nil {
 		return "", err
@@ -239,32 +246,15 @@ func (a *summarizerImpl) summarizeByImage(ctx context.Context, post apitypes.Pos
 	var buf []byte
 	var err error
 
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("no-sandbox", true),
-		chromedp.Flag("disable-gpu", true),
-		chromedp.Flag("headless", true),
-	)
-
-	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
-	defer cancel()
-
-	dpctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
-
-	err = chromedp.Run(dpctx,
-		chromedp.Navigate(post.Path),
-		chromedp.Sleep(10*time.Second),
-		chromedp.WaitReady("body"),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			var err error
-			buf, err = page.CaptureScreenshot().
-				WithQuality(90).
-				WithCaptureBeyondViewport(true).
-				WithFromSurface(true).
-				Do(ctx)
-			return err
-		}),
-	)
+	err = a.runActionInChrome(ctx, post.Path, chromedp.ActionFunc(func(ctx context.Context) error {
+		var err error
+		buf, err = page.CaptureScreenshot().
+			WithQuality(90).
+			WithCaptureBeyondViewport(true).
+			WithFromSurface(true).
+			Do(ctx)
+		return err
+	}))
 
 	if err != nil {
 		return "", err
