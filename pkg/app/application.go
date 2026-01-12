@@ -100,6 +100,15 @@ func (a *Application) Start(ctx context.Context) error {
 				continue
 			}
 
+			if result == "" {
+				slogctx.FromCtx(ctx).ErrorContext(ctx,
+					"post summary is empty",
+					slog.String("Path", post.Path),
+					slog.String("Domain", post.Domain),
+					slog.String("Title", post.Title),
+				)
+			}
+
 			existPaths[post.Path] = true
 			results = append(results, &storage.SummaryResult{
 				Domain:      post.Domain,
