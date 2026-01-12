@@ -109,6 +109,8 @@ func (a *summarizerImpl) Summary(ctx context.Context, post apitypes.Post) (strin
 		return "", err
 	}
 
+	slogctx.FromCtx(ctx).InfoContext(ctx,
+		"generate llm output", slog.String("Output", text))
 	var result generateResult
 	err = json.Unmarshal([]byte(text), &result)
 	if err != nil {

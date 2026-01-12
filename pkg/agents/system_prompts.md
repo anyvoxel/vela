@@ -48,9 +48,9 @@ A good summary saves time while preserving insight. Your goal is to be the readi
 
 Please give the output with simplified chinese, and **MUST** only generate output use following structured JSON format.
 
-<json_template>
+```json
 {
     "error": "The reason when cann't generate summary output",
     "summary": "The summary text if generate is success"
 }
-</json_template>
+```
