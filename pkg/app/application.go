@@ -88,16 +88,23 @@ func (a *Application) Start(ctx context.Context) error {
 				continue
 			}
 
-			result, err := a.summaryAgent.Summary(ctx, post)
+			cctx := slogctx.With(ctx,
+				slog.String("Path", post.Path),
+				slog.String("Domain", post.Domain),
+				slog.String("Title", post.Title))
+			result, err := a.summaryAgent.Summary(cctx, post)
 			if err != nil {
-				slogctx.FromCtx(ctx).ErrorContext(ctx,
+				slogctx.FromCtx(cctx).ErrorContext(ctx,
 					"summary post failed",
-					slog.String("Path", post.Path),
-					slog.String("Domain", post.Domain),
-					slog.String("Title", post.Title),
 					slog.Any("Error", err),
 				)
 				continue
+			}
+
+			if result == "" {
+				slogctx.FromCtx(cctx).ErrorContext(ctx,
+					"post summary is empty",
+				)
 			}
 
 			existPaths[post.Path] = true

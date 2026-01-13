@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -95,9 +97,31 @@ func (a *summarizerImpl) AfterPropertiesSet(context.Context) error {
 	return nil
 }
 
+type generateResult struct {
+	Error   string `json:"error"`
+	Summary string `json:"summary"`
+}
+
 // Summary implement Summarizer.Summary
 func (a *summarizerImpl) Summary(ctx context.Context, post apitypes.Post) (string, error) {
-	return a.summaryFn(ctx, post)
+	text, err := a.summaryFn(ctx, post)
+	if err != nil {
+		return "", err
+	}
+
+	slogctx.FromCtx(ctx).InfoContext(ctx,
+		"generate llm output", slog.String("Output", text))
+	var result generateResult
+	err = json.Unmarshal([]byte(text), &result)
+	if err != nil {
+		return "", err
+	}
+
+	if result.Error != "" {
+		return "", errors.New(result.Error) //nolint
+	}
+
+	return result.Summary, nil
 }
 
 func (a *summarizerImpl) putFileToOSS(ctx context.Context, filename string, data []byte) (string, func(), error) {
