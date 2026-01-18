@@ -13,6 +13,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/collectors/bravenewgeek"
 	_ "github.com/anyvoxel/vela/pkg/collectors/brendangregg"
 	_ "github.com/anyvoxel/vela/pkg/collectors/brooker"
+	_ "github.com/anyvoxel/vela/pkg/collectors/cameronrwolfe"
 	_ "github.com/anyvoxel/vela/pkg/collectors/charap"
 	_ "github.com/anyvoxel/vela/pkg/collectors/cloudflareblog"
 	_ "github.com/anyvoxel/vela/pkg/collectors/davidxiang"
