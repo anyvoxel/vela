@@ -35,6 +35,7 @@ import (
 	_ "github.com/anyvoxel/vela/pkg/collectors/siddharthbharath"
 	_ "github.com/anyvoxel/vela/pkg/collectors/simonwillison"
 	_ "github.com/anyvoxel/vela/pkg/collectors/thegreenplace"
+	_ "github.com/anyvoxel/vela/pkg/collectors/thinkingmachines"
 	_ "github.com/anyvoxel/vela/pkg/collectors/uberblog"
 )
 
