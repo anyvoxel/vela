@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
@@ -24,8 +25,8 @@ import (
 	"github.com/chromedp/chromedp"
 	slogctx "github.com/veqryn/slog-context"
 
-	"github.com/go-kratos/blades"
-	"github.com/go-kratos/blades/contrib/openai"
+	openai "github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino/schema"
 )
 
 func init() {
@@ -48,7 +49,7 @@ type Summarizer interface {
 
 // summarizerImpl is a agent that can summarize a blog post.
 type summarizerImpl struct {
-	agent         blades.Agent
+	chatModel     *openai.ChatModel
 	summarizeType string `airmid:"value:${vela.summarize.type:=image}"`
 	systemPrompt  string
 
@@ -65,13 +66,15 @@ var (
 )
 
 // AfterPropertiesSet implement InitializingBean
-func (a *summarizerImpl) AfterPropertiesSet(context.Context) error {
-	model := openai.NewModel(os.Getenv("OPENAI_MODEL"), openai.Config{
-		BaseURL: os.Getenv("OPENAI_BASE_URL"),
-		APIKey:  os.Getenv("OPENAI_API_KEY"),
+func (a *summarizerImpl) AfterPropertiesSet(ctx context.Context) error {
+	responseFormat := &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
+	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
+		APIKey:         os.Getenv("OPENAI_API_KEY"),
+		Model:          os.Getenv("OPENAI_MODEL"),
+		BaseURL:        os.Getenv("OPENAI_BASE_URL"),
+		ResponseFormat: responseFormat,
+		ByAzure:        os.Getenv("OPENAI_BY_AZURE") == "true",
 	})
-	agent, err := blades.NewAgent("Summary Agent",
-		blades.WithModel(model), blades.WithInstruction(systemPrompts))
 	if err != nil {
 		return err
 	}
@@ -92,7 +95,7 @@ func (a *summarizerImpl) AfterPropertiesSet(context.Context) error {
 		WithRegion(a.ossRegion)
 	a.ossClient = oss.NewClient(cfg)
 
-	a.agent = agent
+	a.chatModel = chatModel
 	a.systemPrompt = systemPrompts
 	return nil
 }
@@ -198,17 +201,11 @@ func (a *summarizerImpl) summarizeByText(ctx context.Context, post apitypes.Post
 		return "", xerrors.Errorf("got empty content, domain: %s, path: %s", post.Domain, post.Path)
 	}
 
-	prompt := blades.UserMessage(
-		fmt.Sprintf("Please summarize the following blog post (with Markdown or HTML format): %s",
-			content),
-	)
-	runner := blades.NewRunner(a.agent)
-	result, err := runner.Run(ctx, prompt)
-	if err != nil {
-		return "", err
+	message := &schema.Message{
+		Role:    schema.User,
+		Content: fmt.Sprintf("Please summarize the following blog post (with Markdown or HTML format): %s", content),
 	}
-
-	return result.Text(), nil
+	return a.generate(ctx, message)
 }
 
 func (a *summarizerImpl) runActionInChrome(ctx context.Context, path string, fn chromedp.ActionFunc) error {
@@ -253,17 +250,11 @@ func (a *summarizerImpl) summarizeByPdf(ctx context.Context, post apitypes.Post)
 	}
 	defer clean()
 
-	prompt := blades.UserMessage(blades.TextPart{
-		Text: fmt.Sprintf("Please summarize the following blog post in the pdf {%s}", path),
-	})
-
-	runner := blades.NewRunner(a.agent)
-	result, err := runner.Run(ctx, prompt)
-	if err != nil {
-		return "", err
+	message := &schema.Message{
+		Role:    schema.User,
+		Content: fmt.Sprintf("Please summarize the following blog post in the pdf {%s}", path),
 	}
-
-	return result.Text(), nil
+	return a.generate(ctx, message)
 }
 
 func (a *summarizerImpl) summarizeByImage(ctx context.Context, post apitypes.Post) (string, error) {
@@ -290,19 +281,61 @@ func (a *summarizerImpl) summarizeByImage(ctx context.Context, post apitypes.Pos
 	}
 	defer clean()
 
-	prompt := blades.UserMessage(blades.FilePart{
-		Name:     "image_url",
-		URI:      path,
-		MIMEType: blades.MIMEImagePNG,
-	}, blades.TextPart{
-		Text: "Please summarize the following blog post in the image",
-	})
+	message := &schema.Message{
+		Role: schema.User,
+		UserInputMultiContent: []schema.MessageInputPart{
+			{
+				Type: schema.ChatMessagePartTypeText,
+				Text: "Please summarize the following blog post in the image",
+			},
+			{
+				Type: schema.ChatMessagePartTypeImageURL,
+				Image: &schema.MessageInputImage{
+					MessagePartCommon: schema.MessagePartCommon{
+						URL: &path,
+					},
+					Detail: schema.ImageURLDetailAuto,
+				},
+			},
+		},
+	}
+	return a.generate(ctx, message)
+}
 
-	runner := blades.NewRunner(a.agent)
-	result, err := runner.Run(ctx, prompt)
+func (a *summarizerImpl) generate(ctx context.Context, userMessage *schema.Message) (string, error) {
+	resp, err := a.chatModel.Generate(ctx, []*schema.Message{
+		{
+			Role:    schema.System,
+			Content: a.systemPrompt,
+		},
+		userMessage,
+	})
 	if err != nil {
 		return "", err
 	}
+	text := extractMessageText(resp)
+	if text == "" {
+		return "", xerrors.Errorf("empty response from llm")
+	}
+	return text, nil
+}
 
-	return result.Text(), nil
+func extractMessageText(msg *schema.Message) string {
+	if msg == nil {
+		return ""
+	}
+	if msg.Content != "" {
+		return msg.Content
+	}
+	if len(msg.AssistantGenMultiContent) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(msg.AssistantGenMultiContent))
+	for _, part := range msg.AssistantGenMultiContent {
+		if part.Type != schema.ChatMessagePartTypeText || part.Text == "" {
+			continue
+		}
+		parts = append(parts, part.Text)
+	}
+	return strings.Join(parts, "")
 }
