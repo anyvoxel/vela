@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/anyvoxel/airmid/anvil"
 	"github.com/anyvoxel/airmid/anvil/xerrors"
@@ -56,6 +58,8 @@ var (
 
 var errListParserResponse = errors.New("list parser response error")
 
+var errBaseURLMustBeAbsolute = errors.New("base url must be absolute")
+
 // AfterPropertiesSet implement InitializingBean
 func (a *listParserImpl) AfterPropertiesSet(ctx context.Context) error {
 	responseFormat := &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
@@ -88,10 +92,15 @@ type listParseResult struct {
 
 // ParseList extracts post metadata from list page HTML.
 func (a *listParserImpl) ParseList(ctx context.Context, html, baseURL, domain string) ([]apitypes.Post, error) {
+	resolveBaseURL, err := normalizeResolveBaseURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
 	message := &schema.Message{
 		Role: schema.User,
 		Content: fmt.Sprintf("BaseURL: %s\nDomain: %s\nHTML:\n%s",
-			baseURL, domain, html),
+			resolveBaseURL, domain, html),
 	}
 
 	text, err := a.generate(ctx, message)
@@ -104,12 +113,18 @@ func (a *listParserImpl) ParseList(ctx context.Context, html, baseURL, domain st
 		return nil, err
 	}
 
-	return buildPosts(result, baseURL, domain)
+	return buildPosts(result, resolveBaseURL, domain)
 }
 
 func parseListResult(text string) (listParseResult, error) {
 	var result listParseResult
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
+		slog.Default().Error(
+			"unmarshal list parser result failed",
+			slog.Any("Error", err),
+			slog.Int("TextLen", len(text)),
+			slog.String("Text", truncateForLog(text, 8*1024)),
+		)
 		return result, err
 	}
 	if result.Error != "" {
@@ -118,7 +133,31 @@ func parseListResult(text string) (listParseResult, error) {
 	return result, nil
 }
 
+func truncateForLog(s string, maxBytes int) string {
+	if maxBytes <= 0 {
+		return s
+	}
+	if len(s) <= maxBytes {
+		return s
+	}
+
+	b := []byte(s)
+	cut := maxBytes
+	if cut > len(b) {
+		cut = len(b)
+	}
+	for cut > 0 && !utf8.Valid(b[:cut]) {
+		cut--
+	}
+	return string(b[:cut]) + "...(truncated)"
+}
+
 func buildPosts(result listParseResult, baseURL, domain string) ([]apitypes.Post, error) {
+	baseURL, err := normalizeResolveBaseURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
 	baseParsed, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
@@ -135,6 +174,27 @@ func buildPosts(result listParseResult, baseURL, domain string) ([]apitypes.Post
 	}
 
 	return posts, nil
+}
+
+// normalizeResolveBaseURL converts an absolute URL (which may include a path) into an origin URL
+// (scheme + host, trailing slash) so that resolving relative post links won't accidentally inherit
+// the list page path.
+func normalizeResolveBaseURL(baseURL string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil {
+		return "", err
+	}
+	if !parsed.IsAbs() {
+		return "", fmt.Errorf("%w: %q", errBaseURLMustBeAbsolute, baseURL)
+	}
+
+	origin := &url.URL{
+		Scheme: parsed.Scheme,
+		User:   parsed.User,
+		Host:   parsed.Host,
+		Path:   "/",
+	}
+	return origin.String(), nil
 }
 
 func buildPost(item listParseItem, baseParsed *url.URL, domain string, seen map[string]struct{}) (apitypes.Post, bool) {
