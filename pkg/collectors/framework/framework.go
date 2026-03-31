@@ -96,9 +96,6 @@ func (f *Framework) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 
 			for post := range cch {
 				post.Domain = c.Name()
-				post.ContentResolver = func() (string, error) {
-					return c.ResolvePostContent(slogctx.With(ctx, slog.String("Collector", c.Name())), post)
-				}
 				ch <- post
 			}
 		}(c)

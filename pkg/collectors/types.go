@@ -17,10 +17,6 @@ type Collector interface {
 
 	// Start will collector post from this domain
 	Start(ctx context.Context, ch chan<- apitypes.Post) error
-
-	// ResolvePostContent will be called when it's necessary to fetch
-	// post's content in text (Markdown、HTML or other format).
-	ResolvePostContent(ctx context.Context, post apitypes.Post) (string, error)
 }
 
 // ListParser extracts post metadata from a list page.

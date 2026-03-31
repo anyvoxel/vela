@@ -82,8 +82,6 @@ func (a *summarizerImpl) AfterPropertiesSet(ctx context.Context) error {
 		a.summaryFn = a.summarizeByImage
 	case "pdf":
 		a.summaryFn = a.summarizeByPdf
-	case "text":
-		a.summaryFn = a.summarizeByText
 	default:
 		return xerrors.Errorf("Unknown summary type: %s", a.summarizeType)
 	}
@@ -184,26 +182,6 @@ func (a *summarizerImpl) putFileToOSS(ctx context.Context, filename string, data
 			slog.Any("Version", result.VersionId),
 		)
 	}, nil
-}
-
-func (a *summarizerImpl) summarizeByText(ctx context.Context, post apitypes.Post) (string, error) {
-	if post.ContentResolver == nil {
-		return "", xerrors.Errorf("cann't got content with nil resolver, domain: %s, path: %s", post.Domain, post.Path)
-	}
-
-	content, err := post.ContentResolver()
-	if err != nil {
-		return "", fmt.Errorf("got content failed: %w, domain: %s, path: %s", err, post.Domain, post.Path)
-	}
-	if content == "" {
-		return "", xerrors.Errorf("got empty content, domain: %s, path: %s", post.Domain, post.Path)
-	}
-
-	message := &schema.Message{
-		Role:    schema.User,
-		Content: fmt.Sprintf("Please summarize the following blog post (with Markdown or HTML format): %s", content),
-	}
-	return a.generate(ctx, message)
 }
 
 func (a *summarizerImpl) runActionInChrome(ctx context.Context, path string, fn chromedp.ActionFunc) error {

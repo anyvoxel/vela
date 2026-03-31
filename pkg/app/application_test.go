@@ -29,8 +29,6 @@ func TestApplication_Start_ChannelClosing(t *testing.T) {
 			ch <- apitypes.Post{Title: "post1", Path: "/post1"}
 			return nil
 		}).AnyTimes()
-	mockCollector.EXPECT().ResolvePostContent(gomock.Any(), gomock.Any()).Return("content", nil).AnyTimes()
-
 	f := framework.NewFramework([]collectors.Collector{mockCollector})
 
 	s := mock_storage.NewMockStorage(mockCtrl)
