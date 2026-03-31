@@ -69,21 +69,6 @@ func (mr *MockCollectorMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockCollector)(nil).Name))
 }
 
-// ResolvePostContent mocks base method.
-func (m *MockCollector) ResolvePostContent(ctx context.Context, post apitypes.Post) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolvePostContent", ctx, post)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ResolvePostContent indicates an expected call of ResolvePostContent.
-func (mr *MockCollectorMockRecorder) ResolvePostContent(ctx, post any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolvePostContent", reflect.TypeOf((*MockCollector)(nil).ResolvePostContent), ctx, post)
-}
-
 // Start mocks base method.
 func (m *MockCollector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
 	m.ctrl.T.Helper()

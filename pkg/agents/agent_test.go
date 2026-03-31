@@ -12,7 +12,7 @@ import (
 func TestNewSummarizer(t *testing.T) {
 	g := gomega.NewWithT(t)
 	s := &summarizerImpl{
-		summarizeType: "text",
+		summarizeType: "image",
 	}
 	err := s.AfterPropertiesSet(context.Background())
 	g.Expect(err).ToNot(gomega.HaveOccurred())

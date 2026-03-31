@@ -15,7 +15,4 @@ type Post struct {
 	// It's the full URL path of current post
 	Path        string
 	PublishedAt time.Time
-
-	// Return the content of current post, it maybe HTML or Markdown format.
-	ContentResolver func() (string, error)
 }

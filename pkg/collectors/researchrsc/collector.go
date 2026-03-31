@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"reflect"
 
-	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/anyvoxel/airmid/anvil"
 	airapp "github.com/anyvoxel/airmid/app"
 	"github.com/anyvoxel/airmid/ioc"
@@ -51,33 +50,6 @@ func (c *Collector) Name() string {
 // Initialize implement collector.Initialize
 func (c *Collector) Initialize(_ context.Context) error {
 	return nil
-}
-
-// ResolvePostContent implement collector.ResolvePostContent
-func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (string, error) {
-	postCollector := colly.NewCollector()
-	var bodyMarkdown string
-	var err error
-
-	postCollector.OnHTML("div.article", func(h *colly.HTMLElement) {
-		var postBody string
-		postBody, err = h.DOM.Html()
-		if err != nil {
-			return
-		}
-		bodyMarkdown, err = md.NewConverter("", true, nil).ConvertString(postBody)
-		if err != nil {
-			return
-		}
-	})
-
-	err = postCollector.Request("GET", post.Path, nil, nil, nil)
-	if err != nil {
-		return "", err
-	}
-
-	postCollector.Wait()
-	return bodyMarkdown, err
 }
 
 // Start implement collector.Start
