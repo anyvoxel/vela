@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
-	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/anyvoxel/airmid/anvil"
@@ -32,6 +31,7 @@ func init() {
 type Collector struct {
 	listCollector *colly.Collector
 	header        http.Header
+	listParser    collectors.ListParser `airmid:"autowire:?"`
 }
 
 var (
@@ -88,39 +88,26 @@ func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (s
 	return bodyMarkdown, err
 }
 
-func (c *Collector) extracePublishedAt(_ context.Context, _ *colly.HTMLElement) time.Time {
-	return time.Time{}
-}
-
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-
-	c.listCollector.OnHTML("#main", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("div[data-baseweb=flex-grid-item]", func(_ int, h *colly.HTMLElement) bool {
-			path := h.ChildAttr("a[data-baseweb=card]", "href")
-			if path == "" {
-				return true
-			}
-			path = "https://www.uber.com" + path
-
-			title := h.ChildAttr("a[data-baseweb=card]", "aria-label")
-			t := c.extracePublishedAt(slogctx.With(ctx, slog.String("Path", path)), h)
-
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
-				slog.String("Path", path),
-				slog.String("Title", title),
-				slog.Any("PublishedAt", t),
+	c.listCollector.OnResponse(func(r *colly.Response) {
+		posts, err := c.listParser.ParseList(ctx, string(r.Body), r.Request.URL.String(), c.Name())
+		if err != nil {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"parse list failed",
+				slog.Any("Error", err),
+				slog.String("URL", r.Request.URL.String()),
 			)
-			post := apitypes.Post{
-				Domain:      c.Name(),
-				Title:       title,
-				Path:        path,
-				PublishedAt: t,
-			}
+			return
+		}
+		for _, post := range posts {
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", post.Path),
+				slog.String("Title", post.Title),
+				slog.Any("PublishedAt", post.PublishedAt),
+			)
 			ch <- post
-
-			return true
-		})
+		}
 	})
 
 	err := c.listCollector.Request("GET", "https://www.uber.com/en-SG/blog/", nil, colly.NewContext(), c.header)

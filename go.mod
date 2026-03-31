@@ -1,6 +1,6 @@
 module github.com/anyvoxel/vela
 
-go 1.25.3
+go 1.26
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
@@ -11,7 +11,7 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20250803210736-d308e07a266d
 	github.com/chromedp/chromedp v0.14.2
 	github.com/clbanning/mxj/v2 v2.7.0
-	github.com/cloudwego/eino v0.7.13
+	github.com/cloudwego/eino v0.8.5
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.11-0.20260323112355-f061db7e8419
 	github.com/gocolly/colly/v2 v2.2.0
 	github.com/onsi/gomega v1.38.2
@@ -29,8 +29,8 @@ require (
 	github.com/bits-and-blooms/bitset v1.22.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.14.1 // indirect
-	github.com/bytedance/sonic/loader v0.3.0 // indirect
+	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.14 // indirect

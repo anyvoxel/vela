@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/go:1.25-bookworm
+FROM mcr.microsoft.com/devcontainers/go:1.26-bookworm
 
 RUN sed -i 's|http://deb.debian.org/|http://mirrors.aliyun.com/|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get install -y wget \

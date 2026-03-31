@@ -5,14 +5,11 @@ import (
 	"context"
 	"log/slog"
 	"reflect"
-	"strings"
-	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/anyvoxel/airmid/anvil"
 	airapp "github.com/anyvoxel/airmid/app"
 	"github.com/anyvoxel/airmid/ioc"
-	"github.com/clbanning/mxj/v2"
 	"github.com/gocolly/colly/v2"
 	slogctx "github.com/veqryn/slog-context"
 
@@ -32,6 +29,7 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
+	listParser    collectors.ListParser `airmid:"autowire:?"`
 }
 
 var (
@@ -82,100 +80,26 @@ func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (s
 	return bodyMarkdown, err
 }
 
-func (c *Collector) extracePublishedAt(ctx context.Context, h *colly.HTMLElement) time.Time {
-	body, err := h.DOM.Html()
-	if err != nil {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"convert DOM to Html failed",
-			slog.Any("Error", err),
-		)
-		return time.Time{}
-	}
-
-	m, err := mxj.NewMapXml([]byte(body))
-	if err != nil {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"convert Html to Map failed",
-			slog.Any("Error", err),
-		)
-		return time.Time{}
-	}
-
-	obj, ok := m["p"]
-	if !ok {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"Html didn't have 'p' element",
-		)
-		return time.Time{}
-	}
-	objv, ok := obj.(map[string]interface{})
-	if !ok {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"'p' element is invalid type",
-			slog.Any("Obj", obj),
-		)
-		return time.Time{}
-	}
-
-	obj, ok = objv["#text"]
-	if !ok {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"'p' element didn't have '#text' element",
-		)
-		return time.Time{}
-	}
-
-	publishedAt, ok := obj.(string)
-	if !ok {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"'#text' element is invalid type",
-			slog.Any("Obj", obj),
-		)
-		return time.Time{}
-	}
-
-	publishedAt = strings.ReplaceAll(publishedAt, "\n", "")
-	t, err := time.Parse("- January 02, 2006", strings.TrimSpace(publishedAt))
-	if err != nil {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"parse datetime failed",
-			slog.Any("Error", err),
-			slog.String("PublishedAt", publishedAt),
-		)
-		return time.Time{}
-	}
-	return t
-}
-
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-
-	c.listCollector.OnHTML("body article section div ul", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("li", func(_ int, h *colly.HTMLElement) bool {
-			path := h.ChildAttr("p a", "href")
-			if path == "" {
-				return true
-			}
-			path = "https://www.micahlerner.com" + path
-
-			title := h.ChildText("p a")
-			t := c.extracePublishedAt(slogctx.With(ctx, slog.String("Path", path)), h)
-
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
-				slog.String("Path", path),
-				slog.String("Title", title),
-				slog.Any("PublishedAt", t),
+	c.listCollector.OnResponse(func(r *colly.Response) {
+		posts, err := c.listParser.ParseList(ctx, string(r.Body), r.Request.URL.String(), c.Name())
+		if err != nil {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"parse list failed",
+				slog.Any("Error", err),
+				slog.String("URL", r.Request.URL.String()),
 			)
-			post := apitypes.Post{
-				Domain:      c.Name(),
-				Title:       title,
-				Path:        path,
-				PublishedAt: t,
-			}
+			return
+		}
+		for _, post := range posts {
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", post.Path),
+				slog.String("Title", post.Title),
+				slog.Any("PublishedAt", post.PublishedAt),
+			)
 			ch <- post
-
-			return true
-		})
+		}
 	})
 
 	err := c.listCollector.Request("GET", "https://www.micahlerner.com/", nil, colly.NewContext(), nil)

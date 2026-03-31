@@ -22,3 +22,9 @@ type Collector interface {
 	// post's content in text (Markdown、HTML or other format).
 	ResolvePostContent(ctx context.Context, post apitypes.Post) (string, error)
 }
+
+// ListParser extracts post metadata from a list page.
+// It should return absolute URLs in Post.Path.
+type ListParser interface {
+	ParseList(ctx context.Context, html, baseURL, domain string) ([]apitypes.Post, error)
+}

@@ -98,13 +98,13 @@ lint: $(GOLANGCI_LINT)
 	@$(GOLANGCI_LINT) run -v
 
 $(GOLANGCI_LINT):
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(BIN_DIR) v2.4.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(BIN_DIR) v2.11.4
 
 test:
-	# 1. Now we can use -race flag, the 'nosplit stack overflow' error will not happened at >= go1.20
-	#   NOTE: see https://github.com/golang/go/issues/54291 for more detail
+	# 1. remove -race flag, the 'SIGSEGV: segmentation violation' error will not happened at go1.26.1
+	#   NOTE: see https://github.com/golang/go/issues/77597 for more detail
 	# 2. add -ldflags to prevent 'permission denied' in macos, see https://github.com/agiledragon/gomonkey/issues/70 for more detail.
-	@go test -v -race -ldflags="-extldflags="-Wl,-segprot,__TEXT,rwx,rx"" -coverpkg=./... -coverprofile=coverage.out -gcflags="all=-N -l" ./...
+	@go test -v -ldflags="-extldflags="-Wl,-segprot,__TEXT,rwx,rx"" -coverpkg=./... -coverprofile=coverage.out -gcflags="all=-N -l" ./...
 	@go tool cover -func coverage.out | tail -n 1 | awk '{ print "Total coverage: " $$3 }'
 
 build-local:

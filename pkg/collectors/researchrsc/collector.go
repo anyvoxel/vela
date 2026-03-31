@@ -5,8 +5,6 @@ import (
 	"context"
 	"log/slog"
 	"reflect"
-	"strings"
-	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/anyvoxel/airmid/anvil"
@@ -31,6 +29,7 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
+	listParser    collectors.ListParser `airmid:"autowire:?"`
 }
 
 var (
@@ -83,45 +82,24 @@ func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (s
 
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-
-	c.listCollector.OnHTML("ul.toc", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("li:not([class])", func(_ int, h *colly.HTMLElement) bool {
-			path, _ := h.DOM.ChildrenFiltered("a").Attr("href")
-			if path == "" {
-				return true
-			}
-			path = "https://research.swtch.com/" + path
-
-			title := h.DOM.ChildrenFiltered("a").Text()
-			publishedAt := h.ChildText("span.toc-when")
-			if len(strings.Split(publishedAt, ",")) > 1 {
-				publishedAt = strings.TrimSpace(strings.Split(publishedAt, ",")[0])
-			}
-
-			t, err := time.Parse("January 2006", strings.TrimSpace(publishedAt))
-			if err != nil {
-				slogctx.FromCtx(ctx).ErrorContext(ctx,
-					"parse datetime failed",
-					slog.Any("Error", err),
-					slog.String("Path", path))
-				return true
-			}
-
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
-				slog.String("Path", path),
-				slog.String("Title", title),
-				slog.Any("PublishedAt", t),
+	c.listCollector.OnResponse(func(r *colly.Response) {
+		posts, err := c.listParser.ParseList(ctx, string(r.Body), r.Request.URL.String(), c.Name())
+		if err != nil {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"parse list failed",
+				slog.Any("Error", err),
+				slog.String("URL", r.Request.URL.String()),
 			)
-			post := apitypes.Post{
-				Domain:      c.Name(),
-				Title:       title,
-				Path:        path,
-				PublishedAt: t,
-			}
+			return
+		}
+		for _, post := range posts {
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", post.Path),
+				slog.String("Title", post.Title),
+				slog.Any("PublishedAt", post.PublishedAt),
+			)
 			ch <- post
-
-			return true
-		})
+		}
 	})
 
 	err := c.listCollector.Request("GET", "https://research.swtch.com/", nil, colly.NewContext(), nil)
