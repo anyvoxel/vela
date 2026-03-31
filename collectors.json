@@ -1,0 +1,127 @@
+[
+  {
+    "name": "allthingsdistributed",
+    "url": "https://www.allthingsdistributed.com/"
+  },
+  {
+    "name": "amazonscience",
+    "url": "https://www.amazon.science/blog"
+  },
+  {
+    "name": "arpitbhayani",
+    "url": "https://arpitbhayani.me/blogs"
+  },
+  {
+    "name": "bravenewgeek",
+    "url": "https://bravenewgeek.com/archive/"
+  },
+  {
+    "name": "brendangregg",
+    "url": "https://www.brendangregg.com/blog/index.html"
+  },
+  {
+    "name": "brooker",
+    "url": "https://brooker.co.za/blog/"
+  },
+  {
+    "name": "cameronrwolfes",
+    "url": "https://cameronrwolfe.substack.com/archive?sort=new"
+  },
+  {
+    "name": "charap",
+    "url": "https://charap.co/"
+  },
+  {
+    "name": "cloudflareblog",
+    "url": "https://blog.cloudflare.com/"
+  },
+  {
+    "name": "davidxiang",
+    "url": "https://davidxiang.com/"
+  },
+  {
+    "name": "emptysqua",
+    "url": "https://emptysqua.re/blog/all-posts/"
+  },
+  {
+    "name": "engineeringfb",
+    "url": "https://engineering.fb.com/"
+  },
+  {
+    "name": "googleblog",
+    "url": "https://developers.googleblog.com/en/search/?query="
+  },
+  {
+    "name": "googlepubs",
+    "url": "https://research.google/pubs/"
+  },
+  {
+    "name": "jackvanlightly",
+    "url": "https://jack-vanlightly.com/"
+  },
+  {
+    "name": "kaiwaehner",
+    "url": "https://www.kai-waehner.de/"
+  },
+  {
+    "name": "karpathy",
+    "url": "https://karpathy.bearblog.dev/blog/"
+  },
+  {
+    "name": "lilianweng",
+    "url": "https://lilianweng.github.io/"
+  },
+  {
+    "name": "micahlerner",
+    "url": "https://www.micahlerner.com/"
+  },
+  {
+    "name": "muratbuffalo",
+    "url": "https://muratbuffalo.blogspot.com"
+  },
+  {
+    "name": "mydistributed",
+    "url": "https://www.mydistributed.systems/"
+  },
+  {
+    "name": "nickyt",
+    "url": "https://www.nickyt.co/archive/"
+  },
+  {
+    "name": "researchrsc",
+    "url": "https://research.swtch.com/"
+  },
+  {
+    "name": "sebastianraschka",
+    "url": "https://sebastianraschka.com/blog/"
+  },
+  {
+    "name": "shopifyblog",
+    "url": "https://shopify.engineering/latest"
+  },
+  {
+    "name": "siddharthbharath",
+    "url": "https://www.siddharthbharath.com/blog/"
+  },
+  {
+    "name": "simonwillison",
+    "url": "https://simonwillison.net/"
+  },
+  {
+    "name": "thegreenplace",
+    "url": "https://eli.thegreenplace.net/"
+  },
+  {
+    "name": "thinkingmachines",
+    "url": "https://thinkingmachines.ai/blog/"
+  },
+  {
+    "name": "uberblog",
+    "url": "https://www.uber.com/en-SG/blog/",
+    "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Content-Type": "text/html; charset=utf-8",
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    }
+  }
+]

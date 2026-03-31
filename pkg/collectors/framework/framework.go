@@ -3,10 +3,13 @@ package framework
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/anyvoxel/airmid/anvil"
@@ -31,12 +34,20 @@ var (
 	_ ioc.InitializingBean = (*Framework)(nil)
 
 	// ErrDuplicateCollector is returned when a collector with the same name already exists.
-	ErrDuplicateCollector = errors.New("duplicate collector name")
+	ErrDuplicateCollector    = errors.New("duplicate collector name")
+	errListParserUnavailable = errors.New("collector sources configured but listParser is not available")
 )
 
 // Framework will orchestration all collectors.
 type Framework struct {
 	cs []collectors.Collector `airmid:"autowire:?"`
+
+	// sourcesFile is a path to a JSON file that contains an array of CollectorSource.
+	// Example file content:
+	//  [{"name":"example","url":"https://example.com/archive","headers":{"User-Agent":"..."}}]
+	sourcesFile string `airmid:"value:${vela.collectors.sources_file:=./collectors.json}"`
+
+	listParser collectors.ListParser `airmid:"autowire:?"`
 }
 
 // NewFramework creates a new Framework with the given collectors.
@@ -45,8 +56,43 @@ func NewFramework(cs []collectors.Collector) *Framework {
 	return &Framework{cs: cs}
 }
 
-// AfterPropertiesSet implement InitializingBean
+// AfterPropertiesSet implements ioc.InitializingBean.
 func (f *Framework) AfterPropertiesSet(_ context.Context) error {
+	if err := f.appendConfiguredCollectors(); err != nil {
+		return err
+	}
+	return f.ensureUniqueCollectorNames()
+}
+
+func (f *Framework) appendConfiguredCollectors() error {
+	filePath := strings.TrimSpace(f.sourcesFile)
+	if filePath == "" {
+		return nil
+	}
+	if f.listParser == nil {
+		return errListParserUnavailable
+	}
+
+	b, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("read vela.collectors.sources_file %q failed: %w", filePath, err)
+	}
+
+	var sources []CollectorSource
+	if err := json.Unmarshal(b, &sources); err != nil {
+		return fmt.Errorf("invalid sources file %q: %w", filePath, err)
+	}
+	for i, src := range sources {
+		cc, err := newConfiguredCollector(src, f.listParser)
+		if err != nil {
+			return fmt.Errorf("invalid sources file %q item[%d]: %w", filePath, i, err)
+		}
+		f.cs = append(f.cs, cc)
+	}
+	return nil
+}
+
+func (f *Framework) ensureUniqueCollectorNames() error {
 	// ensure all collector names are unique
 	names := make(map[string]struct{})
 	for _, c := range f.cs {
