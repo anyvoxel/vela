@@ -4,9 +4,7 @@ package engineeringfb
 import (
 	"context"
 	"log/slog"
-	"net/url"
 	"reflect"
-	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/anyvoxel/airmid/anvil"
@@ -31,6 +29,7 @@ func init() {
 // Collector implemetation.
 type Collector struct {
 	listCollector *colly.Collector
+	listParser    collectors.ListParser `airmid:"autowire:?"`
 }
 
 var (
@@ -81,77 +80,26 @@ func (c *Collector) ResolvePostContent(_ context.Context, post apitypes.Post) (s
 	return bodyMarkdown, err
 }
 
-func (c *Collector) extracePublishedAt(ctx context.Context, h *colly.HTMLElement, path string) time.Time {
-	publishedAt := h.ChildText("header.entry-header span.posted-on time.published")
-	if publishedAt != "" {
-		t, err := time.Parse("Jan 02, 2006", publishedAt)
-		if err != nil {
-			slogctx.FromCtx(ctx).ErrorContext(ctx,
-				"parse datetime failed",
-				slog.Any("Error", err),
-				slog.String("Path", path))
-			return time.Time{}
-		}
-
-		return t
-	}
-
-	// If entry-header didn't have PublishedAt, we try to extrace it from path
-	urlPath, err := url.Parse(path)
-	if err != nil {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"parse url path failed",
-			slog.Any("Error", err),
-			slog.String("Path", path))
-		return time.Time{}
-	}
-
-	if len(urlPath.Path) < 11 {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"can't parse datetime from url path, it's two short",
-			slog.Any("Error", err),
-			slog.String("Path", path))
-		return time.Time{}
-	}
-
-	t, err := time.Parse("/2006/01/02", urlPath.Path[:11])
-	if err != nil {
-		slogctx.FromCtx(ctx).ErrorContext(ctx,
-			"parse datetime from url path failed",
-			slog.Any("Error", err),
-			slog.String("Path", path))
-		return time.Time{}
-	}
-	return t
-}
-
 // Start implement collector.Start
 func (c *Collector) Start(ctx context.Context, ch chan<- apitypes.Post) error {
-
-	c.listCollector.OnHTML("#primary", func(h *colly.HTMLElement) {
-		h.ForEachWithBreak("article.post", func(_ int, h *colly.HTMLElement) bool {
-			path := h.ChildAttr("div.entry-title a", "href")
-			if path == "" {
-				return true
-			}
-
-			title := h.ChildText("div.entry-title a")
-			publishedAt := c.extracePublishedAt(ctx, h, path)
-			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
-				slog.String("Path", path),
-				slog.String("Title", title),
-				slog.Any("PublishedAt", publishedAt),
+	c.listCollector.OnResponse(func(r *colly.Response) {
+		posts, err := c.listParser.ParseList(ctx, string(r.Body), r.Request.URL.String(), c.Name())
+		if err != nil {
+			slogctx.FromCtx(ctx).ErrorContext(ctx,
+				"parse list failed",
+				slog.Any("Error", err),
+				slog.String("URL", r.Request.URL.String()),
 			)
-			post := apitypes.Post{
-				Domain:      c.Name(),
-				Title:       title,
-				Path:        path,
-				PublishedAt: publishedAt,
-			}
+			return
+		}
+		for _, post := range posts {
+			slogctx.FromCtx(ctx).InfoContext(ctx, "collect article",
+				slog.String("Path", post.Path),
+				slog.String("Title", post.Title),
+				slog.Any("PublishedAt", post.PublishedAt),
+			)
 			ch <- post
-
-			return true
-		})
+		}
 	})
 
 	err := c.listCollector.Request("GET", "https://engineering.fb.com/", nil, colly.NewContext(), nil)
