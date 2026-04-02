@@ -67,11 +67,11 @@ var (
 func (a *summarizerImpl) AfterPropertiesSet(ctx context.Context) error {
 	responseFormat := &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
 	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-		APIKey:         os.Getenv("OPENAI_API_KEY"),
-		Model:          os.Getenv("OPENAI_MODEL"),
-		BaseURL:        os.Getenv("OPENAI_BASE_URL"),
+		APIKey:         os.Getenv("OPENAI_API_KEY_SUMMARIZER"),
+		Model:          os.Getenv("OPENAI_MODEL_SUMMARIZER"),
+		BaseURL:        os.Getenv("OPENAI_BASE_URL_SUMMARIZER"),
 		ResponseFormat: responseFormat,
-		ByAzure:        os.Getenv("OPENAI_BY_AZURE") == "true",
+		ByAzure:        os.Getenv("OPENAI_BY_AZURE_SUMMARIZER") == "true",
 	})
 	if err != nil {
 		return err

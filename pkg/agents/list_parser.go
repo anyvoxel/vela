@@ -64,11 +64,11 @@ var errBaseURLMustBeAbsolute = errors.New("base url must be absolute")
 func (a *listParserImpl) AfterPropertiesSet(ctx context.Context) error {
 	responseFormat := &openai.ChatCompletionResponseFormat{Type: openai.ChatCompletionResponseFormatTypeJSONObject}
 	chatModel, err := openai.NewChatModel(ctx, &openai.ChatModelConfig{
-		APIKey:         os.Getenv("OPENAI_API_KEY"),
-		Model:          os.Getenv("OPENAI_MODEL"),
-		BaseURL:        os.Getenv("OPENAI_BASE_URL"),
+		APIKey:         os.Getenv("OPENAI_API_KEY_LIST_PARSER"),
+		Model:          os.Getenv("OPENAI_MODEL_LIST_PARSER"),
+		BaseURL:        os.Getenv("OPENAI_BASE_URL_LIST_PARSER"),
 		ResponseFormat: responseFormat,
-		ByAzure:        os.Getenv("OPENAI_BY_AZURE") == "true",
+		ByAzure:        os.Getenv("OPENAI_BY_AZURE_LIST_PARSER") == "true",
 	})
 	if err != nil {
 		return err

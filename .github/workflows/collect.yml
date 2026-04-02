@@ -26,9 +26,12 @@ jobs:
           go mod download
       - name: summary
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
-          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
+          OPENAI_API_KEY_SUMMARIZER: ${{ secrets.OPENAI_API_KEY_SUMMARIZER }}
+          OPENAI_MODEL_SUMMARIZER: ${{ vars.OPENAI_MODEL_SUMMARIZER }}
+          OPENAI_BASE_URL_SUMMARIZER: ${{ vars.OPENAI_BASE_URL_SUMMARIZER }}
+          OPENAI_API_KEY_LIST_PARSER: ${{ secrets.OPENAI_API_KEY_LIST_PARSER }}
+          OPENAI_MODEL_LIST_PARSER: ${{ vars.OPENAI_MODEL_LIST_PARSER }}
+          OPENAI_BASE_URL_LIST_PARSER: ${{ vars.OPENAI_BASE_URL_LIST_PARSER }}
           GITHUB_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           OSS_ACCESS_KEY_ID: ${{ vars.ALIYUN_OSS_ACCESS_KEY_ID }}
           OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
