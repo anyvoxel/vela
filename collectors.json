@@ -4,6 +4,10 @@
     "url": "https://www.allthingsdistributed.com/"
   },
   {
+    "name": "allegrotechblog",
+    "url": "https://blog.allegro.tech/"
+  },
+  {
     "name": "amazonscience",
     "url": "https://www.amazon.science/blog"
   },
@@ -32,8 +36,16 @@
     "url": "https://charap.co/"
   },
   {
+    "name": "cockroachlabsblog",
+    "url": "https://www.cockroachlabs.com/blog/"
+  },
+  {
     "name": "cloudflareblog",
     "url": "https://blog.cloudflare.com/"
+  },
+  {
+    "name": "datadogblog",
+    "url": "https://www.datadoghq.com/blog/search/?blog-0=The-Monitor&blog-1=Engineering&blog-2=Community&blog-3=Pup-Culture&blog-4=AI"
   },
   {
     "name": "davidxiang",
@@ -72,6 +84,10 @@
     "url": "https://lilianweng.github.io/"
   },
   {
+    "name": "manthanguptaa",
+    "url": "https://manthanguptaa.in/"
+  },
+  {
     "name": "micahlerner",
     "url": "https://www.micahlerner.com/"
   },
@@ -82,6 +98,10 @@
   {
     "name": "mydistributed",
     "url": "https://www.mydistributed.systems/"
+  },
+  {
+    "name": "planetscale",
+    "url": "https://planetscale.com/blog"
   },
   {
     "name": "nickyt",
@@ -96,8 +116,16 @@
     "url": "https://sebastianraschka.com/blog/"
   },
   {
+    "name": "scylladbengineering",
+    "url": "https://www.scylladb.com/category/engineering/"
+  },
+  {
     "name": "shopifyblog",
     "url": "https://shopify.engineering/latest"
+  },
+  {
+    "name": "sidbharath",
+    "url": "https://sidbharath.com/blog/"
   },
   {
     "name": "siddharthbharath",
@@ -112,6 +140,10 @@
     "url": "https://eli.thegreenplace.net/"
   },
   {
+    "name": "transactionalblog",
+    "url": "https://transactional.blog/"
+  },
+  {
     "name": "thinkingmachines",
     "url": "https://thinkingmachines.ai/blog/"
   },
@@ -123,5 +155,9 @@
       "Content-Type": "text/html; charset=utf-8",
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
     }
+  },
+  {
+    "name": "vladmihalcea",
+    "url": "https://vladmihalcea.com/blog/"
   }
 ]
